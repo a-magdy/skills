@@ -69,9 +69,11 @@ By default it **symlinks** each skill into `~/.claude/skills/`, so edits you mak
 
 | Flag | Effect |
 |---|---|
+| `--copilot` | also/instead install into `~/.copilot/skills/` (Copilot CLI) |
+| `--claude` | install into `~/.claude/skills/` (default when no target flag given) |
 | `--copy` | copy instead of symlink (no auto-update from this repo) |
 | `--target PATH` | install to a non-default location |
-| `--dry-run` | preview the plan without making changes |
+| `--dry-run` | preview the plan without making changes (no `apm install` is run) |
 | `-h`, `--help` | full help text |
 | _positional args_ | install only those skills (e.g. `./install.sh session-status decision-log`) |
 

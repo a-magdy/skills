@@ -10,12 +10,12 @@ targets:
 - claude
 dependencies:
   apm:
-    - anthropics/skills/skills/frontend-design
-    - anthropics/skills/skills/mcp-builder
-    - anthropics/skills/skills/pdf
-    - anthropics/skills/skills/pptx
-    - anthropics/skills/skills/skill-creator
-    - anthropics/skills/skills/xlsx
+    - anthropics/skills/skills/frontend-design#da20c92503b2e8ff1cf28ca81a0df4673debdbf7
+    - anthropics/skills/skills/mcp-builder#da20c92503b2e8ff1cf28ca81a0df4673debdbf7
+    - anthropics/skills/skills/pdf#da20c92503b2e8ff1cf28ca81a0df4673debdbf7
+    - anthropics/skills/skills/pptx#da20c92503b2e8ff1cf28ca81a0df4673debdbf7
+    - anthropics/skills/skills/skill-creator#da20c92503b2e8ff1cf28ca81a0df4673debdbf7
+    - anthropics/skills/skills/xlsx#da20c92503b2e8ff1cf28ca81a0df4673debdbf7
   mcp: []
 includes: auto
 scripts: {}

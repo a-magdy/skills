@@ -1,10 +1,11 @@
 lockfile_version: '1'
-generated_at: '2026-06-01T10:53:50.736454+00:00'
+generated_at: '2026-06-01T16:14:43.062258+00:00'
 apm_version: 0.14.2
 dependencies:
 - repo_url: anthropics/skills
   host: github.com
   resolved_commit: da20c92503b2e8ff1cf28ca81a0df4673debdbf7
+  resolved_ref: da20c92503b2e8ff1cf28ca81a0df4673debdbf7
   virtual_path: skills/frontend-design
   is_virtual: true
   package_type: claude_skill
@@ -15,6 +16,7 @@ dependencies:
 - repo_url: anthropics/skills
   host: github.com
   resolved_commit: da20c92503b2e8ff1cf28ca81a0df4673debdbf7
+  resolved_ref: da20c92503b2e8ff1cf28ca81a0df4673debdbf7
   virtual_path: skills/mcp-builder
   is_virtual: true
   package_type: claude_skill
@@ -25,6 +27,7 @@ dependencies:
 - repo_url: anthropics/skills
   host: github.com
   resolved_commit: da20c92503b2e8ff1cf28ca81a0df4673debdbf7
+  resolved_ref: da20c92503b2e8ff1cf28ca81a0df4673debdbf7
   virtual_path: skills/pdf
   is_virtual: true
   package_type: claude_skill
@@ -35,6 +38,7 @@ dependencies:
 - repo_url: anthropics/skills
   host: github.com
   resolved_commit: da20c92503b2e8ff1cf28ca81a0df4673debdbf7
+  resolved_ref: da20c92503b2e8ff1cf28ca81a0df4673debdbf7
   virtual_path: skills/pptx
   is_virtual: true
   package_type: claude_skill
@@ -45,6 +49,7 @@ dependencies:
 - repo_url: anthropics/skills
   host: github.com
   resolved_commit: da20c92503b2e8ff1cf28ca81a0df4673debdbf7
+  resolved_ref: da20c92503b2e8ff1cf28ca81a0df4673debdbf7
   virtual_path: skills/skill-creator
   is_virtual: true
   package_type: claude_skill
@@ -55,6 +60,7 @@ dependencies:
 - repo_url: anthropics/skills
   host: github.com
   resolved_commit: da20c92503b2e8ff1cf28ca81a0df4673debdbf7
+  resolved_ref: da20c92503b2e8ff1cf28ca81a0df4673debdbf7
   virtual_path: skills/xlsx
   is_virtual: true
   package_type: claude_skill

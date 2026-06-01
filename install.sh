@@ -3,14 +3,21 @@
 #
 # Usage:
 #   ./install.sh                          # symlink all skills into ~/.claude/skills/
+#   ./install.sh --copilot                # also/instead install into ~/.copilot/skills/
+#   ./install.sh --claude --copilot       # install into both Claude and Copilot
 #   ./install.sh --copy                   # copy instead of symlink
 #   ./install.sh --target /custom/path    # install to a custom location
 #   ./install.sh session-status           # install only specific skill(s)
 #   ./install.sh --dry-run                # show what would happen, don't do it
 #   ./install.sh -h | --help              # show this help
 #
+# Targets (repeatable; default is --claude only):
+#   --claude            ~/.claude/skills   (APM skills sourced from .claude/skills/)
+#   --copilot           ~/.copilot/skills  (APM skills sourced from .agents/skills/)
+#   --target PATH       custom dir         (APM skills sourced from .claude/skills/)
+#
 # Defaults:
-#   - mode:   symlink (so edits in this repo flow through to Claude)
+#   - mode:   symlink (so edits in this repo flow through to the agent)
 #   - target: ~/.claude/skills
 #
 # Existing skill folders at the target:
@@ -21,11 +28,15 @@ set -euo pipefail
 
 # ---- Defaults -----------------------------------------------------------------
 
-DEFAULT_TARGET="$HOME/.claude/skills"
+CLAUDE_TARGET="$HOME/.claude/skills"
+COPILOT_TARGET="$HOME/.copilot/skills"
 MODE="symlink"
-TARGET="$DEFAULT_TARGET"
 DRY_RUN=false
 SKILLS_TO_INSTALL=()
+
+# Parallel arrays: each install target is a (destination dir, APM source subdir) pair.
+TARGET_DIRS=()
+TARGET_APM_SRCS=()
 
 # ---- Parse args ---------------------------------------------------------------
 
@@ -37,7 +48,9 @@ while [[ $# -gt 0 ]]; do
   case "$1" in
     --copy)    MODE="copy"; shift ;;
     --symlink) MODE="symlink"; shift ;;
-    --target)  TARGET="$2"; shift 2 ;;
+    --claude)  TARGET_DIRS+=("$CLAUDE_TARGET");  TARGET_APM_SRCS+=(".claude/skills"); shift ;;
+    --copilot) TARGET_DIRS+=("$COPILOT_TARGET"); TARGET_APM_SRCS+=(".agents/skills"); shift ;;
+    --target)  TARGET_DIRS+=("$2");              TARGET_APM_SRCS+=(".claude/skills"); shift 2 ;;
     --dry-run) DRY_RUN=true; shift ;;
     -h|--help) print_help; exit 0 ;;
     --) shift; SKILLS_TO_INSTALL+=("$@"); break ;;
@@ -45,6 +58,12 @@ while [[ $# -gt 0 ]]; do
     *)  SKILLS_TO_INSTALL+=("$1"); shift ;;
   esac
 done
+
+# Default to Claude only when no target flag was given (backward compatible).
+if [ ${#TARGET_DIRS[@]} -eq 0 ]; then
+  TARGET_DIRS=("$CLAUDE_TARGET")
+  TARGET_APM_SRCS=(".claude/skills")
+fi
 
 # ---- Discover skills ----------------------------------------------------------
 
@@ -54,9 +73,14 @@ REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 if [ -f "$REPO_ROOT/apm.yml" ] && command -v apm &>/dev/null; then
   if [ ! -d "$REPO_ROOT/.claude/skills" ] || [ ! -d "$REPO_ROOT/apm_modules" ]; then
-    echo "Running apm install to fetch dependencies..."
-    (cd "$REPO_ROOT" && apm install)
-    echo
+    if $DRY_RUN; then
+      echo "would run apm install to fetch dependencies (skipped in dry run)"
+      echo
+    else
+      echo "Running apm install to fetch dependencies..."
+      (cd "$REPO_ROOT" && apm install)
+      echo
+    fi
   fi
 fi
 
@@ -96,69 +120,78 @@ fi
 # ---- Print plan ---------------------------------------------------------------
 
 echo "Source: $REPO_ROOT"
-echo "Target: $TARGET"
 echo "Mode:   $MODE"
 $DRY_RUN && echo "(dry run — no changes will be made)"
+echo "Targets:"
+for t in "${TARGET_DIRS[@]}"; do echo "  - $t"; done
 echo "Skills to install:"
 for s in "${SKILLS_TO_INSTALL[@]}"; do echo "  - $s"; done
 echo
 
 # ---- Install ------------------------------------------------------------------
 
-$DRY_RUN || mkdir -p "$TARGET"
-
 installed=0
 skipped=0
 backed_up=0
 
-for skill in "${SKILLS_TO_INSTALL[@]}"; do
-  # Resolve source: prefer native repo skill, fall back to APM-managed.
-  if [ -d "$REPO_ROOT/$skill" ] && [ -f "$REPO_ROOT/$skill/SKILL.md" ]; then
-    src="$REPO_ROOT/$skill"
-  elif [ -d "$REPO_ROOT/.claude/skills/$skill" ] && [ -f "$REPO_ROOT/.claude/skills/$skill/SKILL.md" ]; then
-    src="$REPO_ROOT/.claude/skills/$skill"
-  else
-    echo "skip: $skill (no SKILL.md found)" >&2
-    skipped=$((skipped+1))
-    continue
-  fi
-  dst="$TARGET/$skill"
+for ti in "${!TARGET_DIRS[@]}"; do
+  TARGET="${TARGET_DIRS[$ti]}"
+  APM_SRC_REL="${TARGET_APM_SRCS[$ti]}"
 
-  # Handle existing destination.
-  if [ -L "$dst" ]; then
-    if $DRY_RUN; then
-      echo "would unlink existing symlink: $dst"
-    else
-      rm "$dst"
-    fi
-  elif [ -e "$dst" ]; then
-    backup="$dst.bak-$(date +%Y%m%d-%H%M%S)"
-    if $DRY_RUN; then
-      echo "would back up existing: $dst -> $backup"
-    else
-      mv "$dst" "$backup"
-      echo "backed up existing: $skill -> $(basename "$backup")"
-    fi
-    backed_up=$((backed_up+1))
-  fi
+  echo "==> $TARGET (APM source: $APM_SRC_REL)"
+  $DRY_RUN || mkdir -p "$TARGET"
 
-  # Install.
-  if $DRY_RUN; then
-    echo "would $MODE: $skill"
-  elif [ "$MODE" = "symlink" ]; then
-    ln -s "$src" "$dst"
-    echo "linked: $skill"
-  else
-    cp -R "$src" "$dst"
-    echo "copied: $skill"
-  fi
-  installed=$((installed+1))
+  for skill in "${SKILLS_TO_INSTALL[@]}"; do
+    # Resolve source: prefer native repo skill, fall back to APM-managed for this target.
+    if [ -d "$REPO_ROOT/$skill" ] && [ -f "$REPO_ROOT/$skill/SKILL.md" ]; then
+      src="$REPO_ROOT/$skill"
+    elif [ -d "$REPO_ROOT/$APM_SRC_REL/$skill" ] && [ -f "$REPO_ROOT/$APM_SRC_REL/$skill/SKILL.md" ]; then
+      src="$REPO_ROOT/$APM_SRC_REL/$skill"
+    else
+      echo "skip: $skill (no SKILL.md found under $APM_SRC_REL)" >&2
+      skipped=$((skipped+1))
+      continue
+    fi
+    dst="$TARGET/$skill"
+
+    # Handle existing destination.
+    if [ -L "$dst" ]; then
+      if $DRY_RUN; then
+        echo "would unlink existing symlink: $dst"
+      else
+        rm "$dst"
+      fi
+    elif [ -e "$dst" ]; then
+      backup="$dst.bak-$(date +%Y%m%d-%H%M%S)"
+      if $DRY_RUN; then
+        echo "would back up existing: $dst -> $backup"
+      else
+        mv "$dst" "$backup"
+        echo "backed up existing: $skill -> $(basename "$backup")"
+      fi
+      backed_up=$((backed_up+1))
+    fi
+
+    # Install.
+    if $DRY_RUN; then
+      echo "would $MODE: $skill"
+    elif [ "$MODE" = "symlink" ]; then
+      ln -s "$src" "$dst"
+      echo "linked: $skill"
+    else
+      cp -R "$src" "$dst"
+      echo "copied: $skill"
+    fi
+    installed=$((installed+1))
+  done
+  echo
 done
 
-echo
 echo "Done. $installed installed, $skipped skipped, $backed_up backed up."
 $DRY_RUN || {
-  echo
-  echo "Installed at $TARGET:"
-  ls -la "$TARGET" | awk 'NR>1 {print "  " $0}'
+  for t in "${TARGET_DIRS[@]}"; do
+    echo
+    echo "Installed at $t:"
+    ls -la "$t" | awk 'NR>1 {print "  " $0}'
+  done
 }
