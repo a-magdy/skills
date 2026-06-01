@@ -57,13 +57,13 @@ Different from `session-carry-forward`: that skill captures decisions only insid
 
 Skills live in `~/.claude/skills/`. To install these:
 
-Use the bundled installer:
-
 ```sh
 git clone <this-repo-url> ~/dev/personal/skills
 cd ~/dev/personal/skills
 ./install.sh
 ```
+
+The installer automatically runs `apm install` to fetch third-party dependencies (from `anthropics/skills`) before symlinking everything into `~/.claude/skills/`. Requires [APM](https://github.com/microsoft/apm) (`curl -sSL https://aka.ms/apm-unix | sh`).
 
 By default it **symlinks** each skill into `~/.claude/skills/`, so edits you make in this repo flow through immediately. Useful flags:
 
@@ -81,6 +81,21 @@ Existing folders at the target are handled safely:
 - a real directory → backed up to `<name>.bak-<YYYYMMDD-HHMMSS>` and replaced.
 
 After install, the skills auto-activate when Claude recognizes the trigger phrases in the table above. No manual invocation needed — though you can also force one with the Skill tool if Claude doesn't trigger automatically.
+
+### Third-party skills (via APM)
+
+The following skills are sourced from [`anthropics/skills`](https://github.com/anthropics/skills) and managed by [APM](https://github.com/microsoft/apm) (declared in `apm.yml`):
+
+| Skill | Source |
+|---|---|
+| `frontend-design` | anthropics/skills |
+| `mcp-builder` | anthropics/skills |
+| `pdf` | anthropics/skills |
+| `pptx` | anthropics/skills |
+| `skill-creator` | anthropics/skills |
+| `xlsx` | anthropics/skills |
+
+To update to latest upstream versions: `apm update`. The lockfile (`apm.lock.yaml`) pins exact commits and content hashes for reproducibility.
 
 ## Design notes
 
