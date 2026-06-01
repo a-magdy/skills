@@ -2,12 +2,7 @@
 name: multi-variant-site-design
 description: >
   Guide for designing a website by generating multiple parallel design variants, housing them in
-  a gallery for comparison, and promoting a winner as the production site. Use this skill when
-  the user wants to explore multiple visual directions for a site, asks for "design variants",
-  "design exploration", "parallel designs", "A/B site concepts", "show me options", "gallery of
-  designs", "compare layouts", or wants to build multiple versions of the same page/site to pick
-  the best one. Also trigger when the user says "give me choices", "explore different directions",
-  "I want to see alternatives before committing", or "design sprint" for a static site.
+  a gallery for comparison, and promoting a winner as the production site.
 ---
 
 # Multi-Variant Site Design
@@ -15,12 +10,23 @@ description: >
 A methodology for exploring multiple design directions in parallel, comparing them in a gallery,
 and promoting the winner to production — without throwing away the exploration.
 
-## When to use this
+## When to invoke
+
+Trigger phrases:
+
+- "design variants", "design exploration", "parallel designs", "A/B site concepts"
+- "show me options", "gallery of designs", "compare layouts"
+- "give me choices", "explore different directions", "design sprint"
+- "I want to see alternatives before committing"
+
+Use cases:
 
 - A new site needs a strong visual identity and you want to see options before committing
 - A redesign where the right aesthetic direction is unclear
 - Building a site for a friend/client where showing alternatives is more effective than describing
 - Any time "just pick one direction" feels premature
+
+Related: For cinematic/animated variants, see the `cinematic-static-site` skill.
 
 ## Philosophy
 

@@ -4,14 +4,6 @@ description: >
   Guide for building cinematic, presentation-grade static websites with smooth scroll animations,
   WebGL effects, scroll-triggered reveals, and editorial grid layouts — the kind of high-end
   agency/corporate site that feels like an interactive story rather than a web page.
-  Use this skill whenever the user wants to build a visually impressive static site, asks for
-  "animation-heavy", "cinematic", "game-like", "interactive storytelling", "presentation-style",
-  or "award-winning" web design, wants scroll-driven animations, parallax, WebGL backgrounds,
-  smooth scrolling, or chapter-based navigation, or references sites like awwwards winners,
-  luxury brand sites, or agency portfolios. Also trigger when the user says things like
-  "make it feel premium", "I want it to feel like a product launch", "editorial layout",
-  or "I want smooth transitions between sections". Even if they just say "make my static site
-  look amazing", this skill applies.
 ---
 
 # Cinematic Static Site Builder
@@ -20,13 +12,25 @@ Build static websites that feel like interactive presentations — smooth, anima
 editorial. This skill captures the architectural patterns behind high-end agency sites and gives
 you a repeatable playbook to apply them to any static site project.
 
-## When to use this
+## When to invoke
+
+Trigger phrases:
+
+- "cinematic", "animation-heavy", "game-like", "interactive storytelling", "presentation-style"
+- "award-winning web design", "make it feel premium", "make my static site look amazing"
+- "scroll-driven animations", "parallax", "WebGL background", "smooth scrolling"
+- "editorial layout", "chapter-based navigation", "I want smooth transitions between sections"
+- References to awwwards winners, luxury brand sites, or agency portfolios
+
+Use cases:
 
 - Building a new static site that needs to feel premium and cinematic
 - Upgrading an existing static site from "functional" to "impressive"
 - Adding scroll-driven animations, smooth scrolling, or WebGL effects
 - Creating chapter-based or storytelling page layouts
 - Any time the goal is "make people say wow when they scroll"
+
+Related: For exploring multiple visual directions before committing, see the `multi-variant-site-design` skill.
 
 ## Architecture Overview
 
