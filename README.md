@@ -57,25 +57,28 @@ Different from `session-carry-forward`: that skill captures decisions only insid
 
 Skills live in `~/.claude/skills/`. To install these:
 
+Use the bundled installer:
+
 ```sh
-# Clone (or fork)
 git clone <this-repo-url> ~/dev/personal/skills
-
-# Symlink each skill into your Claude skills directory
-mkdir -p ~/.claude/skills
-for skill in session-carry-forward session-resume session-status decision-log; do
-  ln -snf ~/dev/personal/skills/$skill ~/.claude/skills/$skill
-done
-
-# Verify Claude sees them
-ls -la ~/.claude/skills/
+cd ~/dev/personal/skills
+./install.sh
 ```
 
-Or, if you prefer a copy (no auto-update from this repo):
+By default it **symlinks** each skill into `~/.claude/skills/`, so edits you make in this repo flow through immediately. Useful flags:
 
-```sh
-cp -r ~/dev/personal/skills/* ~/.claude/skills/
-```
+| Flag | Effect |
+|---|---|
+| `--copy` | copy instead of symlink (no auto-update from this repo) |
+| `--target PATH` | install to a non-default location |
+| `--dry-run` | preview the plan without making changes |
+| `-h`, `--help` | full help text |
+| _positional args_ | install only those skills (e.g. `./install.sh session-status decision-log`) |
+
+Existing folders at the target are handled safely:
+
+- a previous symlink → removed and replaced;
+- a real directory → backed up to `<name>.bak-<YYYYMMDD-HHMMSS>` and replaced.
 
 After install, the skills auto-activate when Claude recognizes the trigger phrases in the table above. No manual invocation needed — though you can also force one with the Skill tool if Claude doesn't trigger automatically.
 
