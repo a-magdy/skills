@@ -1,0 +1,21 @@
+name: skills
+version: 1.0.0
+description: APM project for skills
+author: Ahmed Magdy
+# Which agent platforms to deploy to.
+# Resolution order: --target flag > this field > auto-detect from filesystem.
+# Accepted values: copilot, claude, cursor, opencode, codex, gemini, windsurf, all
+targets:
+- copilot
+- claude
+dependencies:
+  apm:
+    - anthropics/skills/skills/frontend-design
+    - anthropics/skills/skills/mcp-builder
+    - anthropics/skills/skills/pdf
+    - anthropics/skills/skills/pptx
+    - anthropics/skills/skills/skill-creator
+    - anthropics/skills/skills/xlsx
+  mcp: []
+includes: auto
+scripts: {}

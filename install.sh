@@ -50,22 +50,47 @@ done
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-# Anything that has a SKILL.md one level down is a skill.
+# ---- Ensure APM dependencies are fetched -------------------------------------
+
+if [ -f "$REPO_ROOT/apm.yml" ] && command -v apm &>/dev/null; then
+  if [ ! -d "$REPO_ROOT/.claude/skills" ] || [ ! -d "$REPO_ROOT/apm_modules" ]; then
+    echo "Running apm install to fetch dependencies..."
+    (cd "$REPO_ROOT" && apm install)
+    echo
+  fi
+fi
+
+# Anything that has a SKILL.md one level down is a skill (native skills).
 mapfile -t REPO_SKILLS < <(
   find "$REPO_ROOT" -mindepth 2 -maxdepth 2 -name SKILL.md -type f \
+    -not -path "$REPO_ROOT/.claude/*" \
+    -not -path "$REPO_ROOT/.agents/*" \
     | xargs -n1 dirname \
     | xargs -n1 basename \
     | sort
 )
 
-if [ ${#REPO_SKILLS[@]} -eq 0 ]; then
+# APM-managed skills live under .claude/skills/ after `apm install`.
+mapfile -t APM_SKILLS < <(
+  if [ -d "$REPO_ROOT/.claude/skills" ]; then
+    find "$REPO_ROOT/.claude/skills" -mindepth 2 -maxdepth 2 -name SKILL.md -type f \
+      | xargs -n1 dirname \
+      | xargs -n1 basename \
+      | sort
+  fi
+)
+
+# Combined list (native + APM-managed).
+ALL_SKILLS=("${REPO_SKILLS[@]}" "${APM_SKILLS[@]}")
+
+if [ ${#ALL_SKILLS[@]} -eq 0 ]; then
   echo "no skills found under $REPO_ROOT (looking for */SKILL.md)" >&2
   exit 1
 fi
 
 # If no specific skills requested, install them all.
 if [ ${#SKILLS_TO_INSTALL[@]} -eq 0 ]; then
-  SKILLS_TO_INSTALL=("${REPO_SKILLS[@]}")
+  SKILLS_TO_INSTALL=("${ALL_SKILLS[@]}")
 fi
 
 # ---- Print plan ---------------------------------------------------------------
@@ -87,14 +112,17 @@ skipped=0
 backed_up=0
 
 for skill in "${SKILLS_TO_INSTALL[@]}"; do
-  src="$REPO_ROOT/$skill"
-  dst="$TARGET/$skill"
-
-  if [ ! -d "$src" ] || [ ! -f "$src/SKILL.md" ]; then
-    echo "skip: $skill (no $src/SKILL.md)" >&2
+  # Resolve source: prefer native repo skill, fall back to APM-managed.
+  if [ -d "$REPO_ROOT/$skill" ] && [ -f "$REPO_ROOT/$skill/SKILL.md" ]; then
+    src="$REPO_ROOT/$skill"
+  elif [ -d "$REPO_ROOT/.claude/skills/$skill" ] && [ -f "$REPO_ROOT/.claude/skills/$skill/SKILL.md" ]; then
+    src="$REPO_ROOT/.claude/skills/$skill"
+  else
+    echo "skip: $skill (no SKILL.md found)" >&2
     skipped=$((skipped+1))
     continue
   fi
+  dst="$TARGET/$skill"
 
   # Handle existing destination.
   if [ -L "$dst" ]; then

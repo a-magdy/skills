@@ -1,0 +1,64 @@
+lockfile_version: '1'
+generated_at: '2026-06-01T10:53:50.736454+00:00'
+apm_version: 0.14.2
+dependencies:
+- repo_url: anthropics/skills
+  host: github.com
+  resolved_commit: da20c92503b2e8ff1cf28ca81a0df4673debdbf7
+  virtual_path: skills/frontend-design
+  is_virtual: true
+  package_type: claude_skill
+  deployed_files:
+  - .agents/skills/frontend-design
+  - .claude/skills/frontend-design
+  content_hash: sha256:063a0e6448123cd359ad0044cc46b0e490cc7964d45ef4bb9fd842bd2ffbca67
+- repo_url: anthropics/skills
+  host: github.com
+  resolved_commit: da20c92503b2e8ff1cf28ca81a0df4673debdbf7
+  virtual_path: skills/mcp-builder
+  is_virtual: true
+  package_type: claude_skill
+  deployed_files:
+  - .agents/skills/mcp-builder
+  - .claude/skills/mcp-builder
+  content_hash: sha256:09dbc5304106f99933581f90b5181657a3f1981c7adddf1880fb8eaf2e357378
+- repo_url: anthropics/skills
+  host: github.com
+  resolved_commit: da20c92503b2e8ff1cf28ca81a0df4673debdbf7
+  virtual_path: skills/pdf
+  is_virtual: true
+  package_type: claude_skill
+  deployed_files:
+  - .agents/skills/pdf
+  - .claude/skills/pdf
+  content_hash: sha256:69e2ac9eb2bbe2881df26acc53b46b39a15cfda206f5357e5f9c83feb0fadcc7
+- repo_url: anthropics/skills
+  host: github.com
+  resolved_commit: da20c92503b2e8ff1cf28ca81a0df4673debdbf7
+  virtual_path: skills/pptx
+  is_virtual: true
+  package_type: claude_skill
+  deployed_files:
+  - .agents/skills/pptx
+  - .claude/skills/pptx
+  content_hash: sha256:fe530e7c549627879d4b333f11330f966730054003c7f11b520b5f2e0401e8cd
+- repo_url: anthropics/skills
+  host: github.com
+  resolved_commit: da20c92503b2e8ff1cf28ca81a0df4673debdbf7
+  virtual_path: skills/skill-creator
+  is_virtual: true
+  package_type: claude_skill
+  deployed_files:
+  - .agents/skills/skill-creator
+  - .claude/skills/skill-creator
+  content_hash: sha256:b2bfe91d69ca99994c0566baede889e7d2b9bb8791c6b6106c5d387392f717f6
+- repo_url: anthropics/skills
+  host: github.com
+  resolved_commit: da20c92503b2e8ff1cf28ca81a0df4673debdbf7
+  virtual_path: skills/xlsx
+  is_virtual: true
+  package_type: claude_skill
+  deployed_files:
+  - .agents/skills/xlsx
+  - .claude/skills/xlsx
+  content_hash: sha256:38d1187a140b4c5470ab523f229560f29c96f6bb95552f952e1710d3bfbdbfea
