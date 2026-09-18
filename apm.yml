@@ -16,6 +16,9 @@ dependencies:
     - anthropics/skills/skills/pptx
     - anthropics/skills/skills/skill-creator
     - anthropics/skills/skills/xlsx
+    - ayghri/i-have-adhd/skills/i-have-adhd
+    - mattpocock/skills/skills/productivity/grill-me
+    - humanlayer/skills/plugins/show-me
   mcp: []
 includes: auto
 scripts: {}
