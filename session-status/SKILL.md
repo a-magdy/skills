@@ -1,6 +1,6 @@
 ---
 name: session-status
-description: Mid-session health-and-status report for a long Claude Code session. Three flavors triggered by phrasing — running summary ("summarize so far"), safe-to-close health check ("is it safe to close"), and current-focus view ("what am I in the middle of"). Non-destructive: prints a synthesis, never writes a file. Use this when the user wants a snapshot of state without producing a handoff document.
+description: 'Mid-session health-and-status report for a long Claude Code session. Three flavors triggered by phrasing — running summary ("summarize so far"), safe-to-close health check ("is it safe to close"), and current-focus view ("what am I in the middle of"). Non-destructive: prints a synthesis, never writes a file. Use this when the user wants a snapshot of state without producing a handoff document.'
 ---
 
 # session-status
