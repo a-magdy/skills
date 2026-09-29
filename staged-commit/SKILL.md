@@ -23,6 +23,7 @@ Do **not** invoke to push, open a PR, or amend already-published commits unless 
 4. **Never use `--no-verify`** or otherwise bypass hooks.
 5. **Scan before staging.** Inspect the diff for secrets (tokens, keys, passwords, `.env` values) and personal info before adding anything. If found, stop and warn the user; do not stage the offending hunk.
 6. **Never `git add -A` blindly.** Stage the explicit paths for each logical group so unrelated or in-progress files aren't swept in.
+7. **Respect a pre-existing index.** `git add <file>` then `git commit` commits the **entire** staging area — including anything the user had already staged before you started. If the tree has pre-existing staged files, commit with an explicit pathspec (`git commit -m "..." -- <path>`) so only your intended files land. Never silently fold the user's staged work into your commit.
 
 ## Procedure
 
@@ -31,7 +32,7 @@ Do **not** invoke to push, open a PR, or amend already-published commits unless 
    git status --short
    git diff --stat
    ```
-   Note staged vs unstaged vs untracked. Read the actual diffs for anything non-obvious (`git diff`, `git diff --staged`).
+   Note staged vs unstaged vs untracked. **Check for files the user already staged before you started** — those will be swept into any plain `git commit`. Read the actual diffs for anything non-obvious (`git diff`, `git diff --staged`).
 
 2. **Scan for red flags** in the diff before doing anything else:
    - secrets / credentials / tokens / private keys / `.env` contents
@@ -50,12 +51,11 @@ Do **not** invoke to push, open a PR, or amend already-published commits unless 
 
 4. **Propose the plan.** Present the ordered list of commits — each with the files it will include and a one-line message — and let the user confirm or adjust before you run anything. Default to smaller chunks when unsure.
 
-5. **Commit each chunk** with explicit paths:
+5. **Commit each chunk** with an explicit pathspec so only the intended files are committed, regardless of what else is in the index:
    ```sh
-   git add <path> <path>
-   git commit -m "<message>"
+   git commit -m "<message>" -- <path> <path>
    ```
-   Commit in dependency order (e.g. the thing being depended on first).
+   (Plain `git add <path> && git commit` is fine only when the index is otherwise empty.) Commit in dependency order (e.g. the thing being depended on first).
 
 6. **Report** the resulting `git log --oneline -n <count>` and remind the user nothing was pushed.
 
@@ -87,3 +87,4 @@ WIP                                  # not self-contained
 - If the working tree is clean, say so and stop.
 - If everything is genuinely one logical change, a single commit is correct — don't split for the sake of it.
 - If pre-commit hooks modify files, re-stage and re-run the commit; never bypass with `--no-verify`.
+- **Fixing a mixed commit** (you accidentally swept in unrelated staged work, still unpushed): `git reset --soft HEAD~1` restores the exact prior index, then re-commit with a pathspec (`git commit -m "..." -- <path>`). This preserves the user's partial staging. Never do this on a pushed commit.
