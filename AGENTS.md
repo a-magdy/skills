@@ -118,3 +118,10 @@ This repo is public. Never commit personal or environment-specific data:
 - Output paths default to inside the calling repo so artifacts live with the work they describe.
 - Absolute dates (YYYY-MM-DD) only — relative phrasing breaks across sessions.
 - No `Co-Authored-By` trailers and no AI/tool references in commit messages.
+
+## Gotchas & tooling notes
+
+- **`plugin marketplace add <repo>` returns non-zero if the marketplace is already registered.** Under `set -euo pipefail` this aborts `install-plugins.sh` on any re-run — which is why it wraps that step as non-fatal (`run_soft`). `plugin install` itself is idempotent (a re-install just refreshes).
+- **`install.sh` source vs destination are different dirs.** The repo-relative *source* is `.agents/skills` (APM-generated); the *destination* is `$HOME/.claude/skills` / `$HOME/.copilot/skills`. Only the source is `.agents/skills`; the destinations are unchanged, so Claude Code and Copilot still receive symlinks.
+- **One `.agents/skills` source is enough.** `apm install`'s `.claude/skills` and `.agents/skills` outputs are byte-identical for plain `SKILL.md` skills (verified with `diff -rq`), so `apm.yml` targets only `copilot`. Caveat: a skill shipping agent-specific files could differ per target — none here do.
+- **Plugin CLI verbs** (both `copilot` and `claude`): `plugin list|install|uninstall|update|enable|disable`, `plugin marketplace add|remove`. `uninstall` takes one name at a time (`plugin` or `plugin@marketplace`).
