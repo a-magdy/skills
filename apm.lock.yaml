@@ -1,5 +1,5 @@
 lockfile_version: '1'
-generated_at: '2026-09-29T04:43:33.235052+00:00'
+generated_at: '2026-09-29T19:36:58.017027+00:00'
 apm_version: 0.31.0
 dependencies:
 - repo_url: anthropics/skills
@@ -1964,3 +1964,28 @@ deployments:
   - anthropics/skills/skills/xlsx
   active_owner: anthropics/skills/skills/xlsx
   content_hash: sha256:66f6e726d5a53cfabea0b6471d6669deb95e54e96cb7913b687e4388da1bb3d9
+- kind: uri
+  target: mcp
+  value: awesome-copilot
+  runtime: copilot
+  scope: project
+  owners:
+  - .
+  active_owner: .
+  content_hash: null
+mcp_servers:
+- awesome-copilot
+mcp_configs:
+  awesome-copilot:
+    name: awesome-copilot
+    transport: stdio
+    args:
+    - run
+    - -i
+    - --rm
+    - ghcr.io/microsoft/mcp-dotnet-samples/awesome-copilot:latest
+    registry: false
+    command: docker
+mcp_target_servers:
+  copilot:
+  - awesome-copilot

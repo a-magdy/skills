@@ -17,6 +17,11 @@ dependencies:
   - humanlayer/skills/plugins/show-me
   - humanlayer/skills/plugins/improve-claude-md
   mcp:
-  - io.github.github/github-mcp-server
+  # Example self-defined stdio MCP server (public Microsoft sample; no secrets).
+  - name: awesome-copilot
+    registry: false
+    transport: stdio
+    command: docker
+    args: ["run", "-i", "--rm", "ghcr.io/microsoft/mcp-dotnet-samples/awesome-copilot:latest"]
 includes: auto
 scripts: {}
