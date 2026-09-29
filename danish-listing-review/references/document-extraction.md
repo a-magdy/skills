@@ -54,6 +54,33 @@ tilstandsrapport med forhold karakteriseret rødt hus og gult hus"*. Cross-check
 severities against that sentence; if the salgsopstilling says "rødt hus" and you found no red
 icons, your extraction is wrong.
 
+## The electrical report grades by text, not colour
+
+The `Elinstallationsrapport` is the one technical document where plain text matching is
+reliable, because the authorised electrician files findings under **named risk categories**
+printed as headings rather than as coloured icons:
+
+| Category | Treat as | Why it matters |
+|---|---|---|
+| `Ulovlige forhold, som giver risiko for elektrisk stød` | Critical | Shock risk — a safety defect, not a to-do |
+| `Ulovlige forhold, som giver risiko for brand` | Critical | Fire risk; insurers care, and so should the buyer |
+| `Ulovlige forhold` (unqualified) | Serious | Illegal but no immediate danger |
+| `Undersøges nærmere` | Serious | Unquantified by definition — the cost is unknown, which is itself the finding |
+| `Funktionsfejl` | Minor | Works badly rather than dangerously |
+
+The script counts mentions per category and ranks them. One subtlety it handles: the shock
+and fire headings *contain* the words "ulovlige forhold", so a naive count files the serious
+findings under the mild category — the same inversion the severity-icon trap produces, by a
+different route.
+
+Treat the counts as triage that tells you which sections to read, not as a substitute for
+reading them; template wording varies between electricians. If no category matches, the
+script says so rather than reporting a clean bill of health — read the report manually in
+that case.
+
+Electrical defects are worth raising early in negotiation. They are cheap relative to roofs,
+they are documented, and a seller will often fix them before closing rather than argue.
+
 ## The energy label is also an image
 
 On page 1 of the Energimærkningsrapport, the big letter (A2020…G) is a graphic. Text

@@ -244,6 +244,95 @@ def extract_tilstandsrapport(path: Path, outdir: Path, quiet: bool) -> dict:
     return payload
 
 
+EL_CATEGORIES = [
+    ("shock_risk", "Ulovlige forhold, risiko for elektrisk stød",
+     ["risiko for elektrisk stød", "risiko for stød"]),
+    ("fire_risk", "Ulovlige forhold, risiko for brand",
+     ["risiko for brand"]),
+    ("illegal", "Ulovlige forhold uden umiddelbar risiko",
+     ["ulovlige forhold", "ulovligt forhold"]),
+    ("investigate", "Undersøges nærmere",
+     ["undersøges nærmere", "bør undersøges"]),
+    ("malfunction", "Funktionsfejl",
+     ["funktionsfejl"]),
+]
+
+EL_SEVERITY_RANK = {
+    "shock_risk": "critical",
+    "fire_risk": "critical",
+    "illegal": "serious",
+    "investigate": "serious",
+    "malfunction": "minor",
+}
+
+
+def extract_elinstallationsrapport(path: Path, text: str, outdir: Path,
+                                   quiet: bool) -> dict:
+    """Parse the electrical report.
+
+    The el-report grades findings by named risk category printed as text, rather than by
+    the colour icons the tilstandsrapport uses, so text matching is reliable here. Icons
+    are still decoded when present, because some vendors' templates carry both.
+
+    Categories are counted from the body text. Treat the counts as a triage signal that
+    tells you which sections to read, not as a substitute for reading them — template
+    wording varies between authorised electricians.
+    """
+    flat = normalise(text)
+    found = []
+    # The shock and fire headings contain the words "ulovlige forhold" themselves, so the
+    # generic category has to exclude those or it double-counts the serious findings as
+    # mild ones — the exact inversion this skill exists to prevent.
+    risk_qualified = len(re.findall(r"ulovlige? forholde?,? som giver risiko", flat))
+    for key, label, needles in EL_CATEGORIES:
+        hits = sum(flat.count(n) for n in needles)
+        if key == "illegal":
+            hits = max(0, hits - risk_qualified)
+        if hits:
+            found.append({
+                "category": key,
+                "label": label,
+                "severity": EL_SEVERITY_RANK[key],
+                "mentions": hits,
+            })
+
+    icon_sevs: list[dict] = []
+    try:
+        reader = pypdf.PdfReader(str(path))
+        for page in reader.pages:
+            icon_sevs.extend(severities_on_page(page))
+    except Exception:
+        pass
+
+    payload = {
+        "source": path.name,
+        "categories_present": found,
+        "icon_severities": dict(Counter(s["severity"] for s in icon_sevs)) or None,
+        "note": (
+            "Counts are mentions of each risk category in the report text, used to point "
+            "you at the sections that matter. Read those sections in full — an electrical "
+            "defect with shock or fire risk is both a safety issue and a negotiating "
+            "lever, and it is one of the few things a seller will usually fix pre-closing."
+        ),
+    }
+    (outdir / "elinstallation.json").write_text(
+        json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8"
+    )
+
+    if not quiet:
+        if not found:
+            print("    no known risk categories matched — read the report manually, the "
+                  "template may differ from the standard wording")
+        for f in found:
+            print(f"    [{f['severity'].upper():8}] {f['label']}  "
+                  f"({f['mentions']} mention(s))")
+        if icon_sevs:
+            print("    icon severities detected: " + "  ".join(
+                f"{k}={v}" for k, v in sorted(Counter(
+                    s["severity"] for s in icon_sevs).items())))
+    return payload
+
+
 def extract_energy_label(path: Path, outdir: Path, quiet: bool) -> dict:
     """Render the label region — the letter is a graphic, not text."""
     out = {"source": path.name, "label_image": None, "note": None}
@@ -367,6 +456,10 @@ def process(path: Path, outdir: Path, quiet: bool) -> dict:
         result["energy"] = extract_energy_label(path, outdir, quiet)
     elif kind == "salgsopstilling":
         result["salgsopstilling"] = extract_salgsopstilling(joined, outdir, quiet)
+    elif kind == "elinstallationsrapport":
+        result["elinstallation"] = extract_elinstallationsrapport(
+            path, joined, outdir, quiet
+        )
     elif not quiet:
         print("  no specialised handler; text extracted only")
     return result
