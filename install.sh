@@ -2,14 +2,18 @@
 # Install the skills in this repo into ~/.claude/skills/ (or a custom target).
 #
 # Usage:
-#   ./install.sh                          # symlink all skills into ~/.claude/skills/
+#   ./install.sh                          # symlink APM (third-party) skills into ~/.claude/skills/
 #   ./install.sh --copilot                # also/instead install into ~/.copilot/skills/
 #   ./install.sh --claude --copilot       # install into both Claude and Copilot
 #   ./install.sh --copy                   # copy instead of symlink
 #   ./install.sh --target /custom/path    # install to a custom location
-#   ./install.sh session-status           # install only specific skill(s)
+#   ./install.sh session-status           # install only specific skill(s), own or APM
 #   ./install.sh --dry-run                # show what would happen, don't do it
 #   ./install.sh -h | --help              # show this help
+#
+# NOTE: by default this installs only APM-managed (third-party) skills. The
+# repo's own skills ship via the `personal-skills` plugin (marketplace.json),
+# so they are no longer symlinked here (avoids double-loading with the plugin).
 #
 # Targets (repeatable; default is --claude only):
 #   --claude            ~/.claude/skills   (APM skills sourced from .agents/skills/)
@@ -104,7 +108,7 @@ mapfile -t APM_SKILLS < <(
   fi
 )
 
-# Combined list (native + APM-managed).
+# Combined list (native + APM-managed) — used only for explicit-name resolution.
 ALL_SKILLS=("${REPO_SKILLS[@]}" "${APM_SKILLS[@]}")
 
 if [ ${#ALL_SKILLS[@]} -eq 0 ]; then
@@ -112,9 +116,12 @@ if [ ${#ALL_SKILLS[@]} -eq 0 ]; then
   exit 1
 fi
 
-# If no specific skills requested, install them all.
+# By default, install only APM-managed (third-party) skills. The repo's own
+# skills are distributed via the `personal-skills` plugin (see marketplace.json),
+# not by symlinking — this avoids double-loading them alongside the plugin.
+# Pass skill names explicitly to install specific skills (own or APM).
 if [ ${#SKILLS_TO_INSTALL[@]} -eq 0 ]; then
-  SKILLS_TO_INSTALL=("${ALL_SKILLS[@]}")
+  SKILLS_TO_INSTALL=("${APM_SKILLS[@]}")
 fi
 
 # ---- Print plan ---------------------------------------------------------------
