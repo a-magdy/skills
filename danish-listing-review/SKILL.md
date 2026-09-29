@@ -81,6 +81,13 @@ It auto-detects document type, pulls the text, decodes each defect's severity by
 the icon colour in page draw order, and renders the energy label page to an image you can
 read. Run it before anything else; it saves you rediscovering the technique each time.
 
+**If a PDF is scanned or image-only** (the script returns little or no text), use the
+`pdf` skill to OCR it into a text layer first, then re-run `extract_property_pdfs.py` on the
+OCR'd file so the severity decoding and field extraction have text to work with. Use the
+`pdf` skill too for any generic PDF chores this script doesn't cover (merging split reports,
+extracting an embedded floor plan, filling a form). The custom script stays the primary tool
+— it is the only one that decodes the colour-coded defect severities.
+
 Read `references/document-extraction.md` for what the output means, the severity colour
 key, the Danish field labels worth grepping for, and — importantly — the specific sections
 where the material caveats hide. The headline figures on page 1 are never where the
