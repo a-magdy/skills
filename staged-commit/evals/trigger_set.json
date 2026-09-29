@@ -1,0 +1,12 @@
+[
+  { "query": "commit this for me", "should_trigger": true },
+  { "query": "commit my changes", "should_trigger": true },
+  { "query": "stage and commit these edits", "should_trigger": true },
+  { "query": "break these changes into separate commits", "should_trigger": true },
+  { "query": "commit my work in logical stages", "should_trigger": true },
+  { "query": "can you wrap up my working tree into commits", "should_trigger": true },
+  { "query": "what does this function do?", "should_trigger": false },
+  { "query": "run the test suite", "should_trigger": false },
+  { "query": "write a new unit test for the parser", "should_trigger": false },
+  { "query": "open a pull request for my branch", "should_trigger": false }
+]
