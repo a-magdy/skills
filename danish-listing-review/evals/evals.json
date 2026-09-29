@@ -1,0 +1,41 @@
+{
+  "skill_name": "danish-listing-review",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "I am looking to buy this property\n\nEksempelvej 12, 2600 Glostrup\n\ngive me a quick highlight of any red flags I should be aware of",
+      "expected_output": "Recognises that no documents were supplied and asks for the salgsopstilling, tilstandsrapport, energimaerkningsrapport and elinstallationsrapport before committing to a verdict, while still giving whatever address-level read is possible from public sources. Does not fabricate defect findings, tax figures or condition-report severities that it has no source for.",
+      "files": []
+    },
+    {
+      "id": 2,
+      "prompt": "Here are the documents for a house I am considering. Give me the red flags.\n\nSalgsopstilling - Eksempelvej 12.pdf\nEnergimaerkningsrapport.pdf\nTilstandsrapport.pdf",
+      "expected_output": "Runs scripts/extract_property_pdfs.py rather than reading the PDFs by plain text extraction. Correctly reports the condition-report severity mix by decoding the coloured icons, not by reading text. Reads the energy label from a rendered page image rather than trusting extracted characters. Ranks red flags by financial and safety severity rather than PDF order, attaches indicative DKK cost ranges, and notes where the ejerskifteforsikring will not cover an already-documented defect.",
+      "files": []
+    },
+    {
+      "id": 3,
+      "prompt": "The salgsopstilling says the property tax is 21,570 kr/yr. What will I actually pay?",
+      "expected_output": "Explains that the seller's skatterabat does not transfer to a buyer under the 2024 reform, so the printed figure may be the seller's discounted one. Recomputes on the buyer's basis from the public valuation and the kommune permille, and back-calculates the implied rates from the listing to check whether a discount is baked in. Uses a post-2024 grundskyld permille in the 5-10 range, not a pre-reform 20-34 figure.",
+      "files": []
+    },
+    {
+      "id": 4,
+      "prompt": "Is this one worth viewing? 4,000,000 kr, 115 m2, built 1965, energy label C, Greater Copenhagen. I can put 200k down.",
+      "expected_output": "Computes the real monthly cost including bidragssats at the correct LTV band, rentefradrag, recalculated property tax, the buyer's own transaction costs which the salgsopstilling omits, and a sinking fund. Runs a rate stress test and a break-even resale. Flags the 95% LTV as thin equity against the postcode's 2008 drawdown. Scores it, but states plainly that the score carries no condition term.",
+      "files": []
+    },
+    {
+      "id": 5,
+      "prompt": "export this as html document summarized up nicely",
+      "expected_output": "Produces a single self-contained HTML file with inlined CSS, no external assets or CDN links, severity badges, a bottom-line verdict box near the top, and print-friendly styling. Saves it somewhere the user can reach it and offers to open it.",
+      "files": []
+    },
+    {
+      "id": 6,
+      "prompt": "What should I go check myself before I make an offer on this house?",
+      "expected_output": "Produces a fieldwork list covering repeat visits at different times including a weekday evening and a weekend, parking pressure, conversations with the immediate neighbours, noise and smell at different hours, and items to verify with the kommune such as the lokalplan and kloak. Frames them as actions to perform rather than things to look at, and ends on the question of whether the house is still worth it if every remediation landed in year one.",
+      "files": []
+    }
+  ]
+}
