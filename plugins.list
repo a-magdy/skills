@@ -8,3 +8,4 @@
 #   marketplace_repo | marketplace_name | plugin | targets(comma) | description
 #
 obra/superpowers-marketplace | superpowers-marketplace | superpowers | copilot,claude | Agentic SDLC methodology: brainstorming, TDD, systematic-debugging, code review, git worktrees, with a session-start bootstrap
+a-magdy/skills | personal-skills-marketplace | personal-skills | copilot,claude | This repo's own skills (session lifecycle, site design, Danish due diligence) with SessionStart/SessionEnd hooks
