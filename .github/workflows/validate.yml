@@ -34,11 +34,10 @@ jobs:
       - name: Every skill has a SKILL.md
         run: |
           missing=0
+          # Only top-level own-skill directories (matched by name), not their subdirs.
           while IFS= read -r d; do
             [ -f "$d/SKILL.md" ] || { echo "no SKILL.md in $d"; missing=1; }
-          done < <(find . -maxdepth 2 -type d \
-                    -not -path './.*' -not -path './apm_modules/*' \
-                    -not -path './plugin/*' -not -path './scripts' \
-                    -not -path './carry-forwards' \
-                    | grep -E '/(session-|decision-log|cinematic|multi-variant|danish)' || true)
+          done < <(find . -maxdepth 1 -type d \( \
+                     -name 'session-*' -o -name 'decision-log' -o -name 'cinematic-*' \
+                     -o -name 'multi-variant-*' -o -name 'danish-*' \) | sort)
           exit $missing
