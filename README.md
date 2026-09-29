@@ -147,6 +147,31 @@ apm install             # fetch APM skill dependencies (apm.yml)
 ./install-plugins.sh    # install whole plugins/harnesses via each CLI (plugins.list)
 ```
 
+## Install this repo as a plugin
+
+This repo is itself a **plugin marketplace** (see [`marketplace.json`](./marketplace.json)). Its own skills — session lifecycle, site design, Danish due diligence — plus SessionStart/SessionEnd hooks ship as the `personal-skills` plugin, installable in one command:
+
+```sh
+# Copilot CLI
+copilot plugin marketplace add a-magdy/skills
+copilot plugin install personal-skills@personal-skills-marketplace
+
+# Claude Code
+claude plugin marketplace add a-magdy/skills
+claude plugin install personal-skills@personal-skills-marketplace -y
+```
+
+> **Pick one path for the repo's own skills.** Installing the plugin **and** symlinking the same skills via `install.sh` loads every one **twice**. The default `install.sh` only symlinks third-party (APM) skills for this reason; the plugin is the source for the repo's own skills. Use `install.sh` symlinks when you're actively editing the skills (live edits), the plugin when you just want to consume them.
+
+## Versioning
+
+The single source of truth is the [`VERSION`](./VERSION) file. Run [`scripts/sync-version.sh`](./scripts/sync-version.sh) to stamp it into `apm.yml` and every plugin/marketplace manifest so they never drift:
+
+```sh
+./scripts/sync-version.sh 1.2.0   # set + stamp
+./scripts/sync-version.sh --check # verify all match (used by CI)
+```
+
 ## Design notes
 
 A few principles that shaped this set:
