@@ -16,26 +16,46 @@
     {
       "id": 3,
       "prompt": "The salgsopstilling says the property tax is 21,570 kr/yr. What will I actually pay?",
-      "expected_output": "Explains that the seller's skatterabat does not transfer to a buyer under the 2024 reform, so the printed figure may be the seller's discounted one. Recomputes on the buyer's basis from the public valuation and the kommune permille, and back-calculates the implied rates from the listing to check whether a discount is baked in. Uses a post-2024 grundskyld permille in the 5-10 range, not a pre-reform 20-34 figure.",
+      "expected_output": "Explains that the seller's skatterabat does not transfer to a buyer under the 2024 reform, so the printed figure may be the seller's discounted one. Recomputes on the buyer's basis from the public valuation and the kommune permille, and back-calculates the implied rates from the listing to check whether a discount is baked in. Uses a post-2024 grundskyld permille in the 5-10 range, not a pre-reform 20-34 figure. When folding the result into a monthly budget, adds only the uplift over the listed figure rather than the whole recomputed tax, because ejerudgift already contains the seller's property tax.",
       "files": []
     },
     {
       "id": 4,
       "prompt": "Is this one worth viewing? 4,000,000 kr, 115 m2, built 1965, energy label C, Greater Copenhagen. I can put 200k down.",
-      "expected_output": "Computes the real monthly cost including bidragssats at the correct LTV band, rentefradrag, recalculated property tax, the buyer's own transaction costs which the salgsopstilling omits, and a sinking fund. Runs a rate stress test and a break-even resale. Flags the 95% LTV as thin equity against the postcode's 2008 drawdown. Scores it, but states plainly that the score carries no condition term.",
+      "expected_output": "Splits the financing into a realkreditlån capped at 80% of value plus a boliglån for the remainder at a higher bank rate, rather than modelling one blended annuity — and charges bidragssats only on the realkredit leg. States whether the bank rate is the real offer or an assumption. Also computes rentefradrag, the buyer's own transaction costs which the salgsopstilling omits, and a sinking fund. Runs a rate stress test and a break-even resale. Flags the 95% LTV as thin equity against the postcode's 2008 drawdown. Scores it, but states plainly that the score carries no condition term.",
       "files": []
     },
     {
       "id": 5,
+      "prompt": "It's an andelsbolig in Copenhagen, 1.8m for the andel, boligafgift 4,200/md. Worth it?",
+      "expected_output": "Recognises that an andelsbolig is a different product rather than a cheap flat: no realkredit available, so the financing is a bank andelsboliglån; ejendomsvaerdiskat and grundskyld are not levied on the andelshaver and must not be added on top of the boligafgift; and the price is capped by maksimalpris from the andelskronen. Redirects the analysis to the association's accounts, debt per andel, any interest-rate swaps, and whether the boligafgift is about to rise. Does not produce a property-tax bill that does not exist.",
+      "files": []
+    },
+    {
+      "id": 6,
+      "prompt": "Here's the elinstallationsrapport too — anything scary in it?",
+      "expected_output": "Parses the electrical report by its named risk categories rather than treating all findings alike. Ranks 'risiko for elektrisk stoed' and 'risiko for brand' as critical, unqualified 'ulovlige forhold' and 'undersoeges naermere' as serious, and funktionsfejl as minor. Does not file the shock and fire findings under the generic illegal-conditions category merely because that phrase appears inside their headings. Notes that electrical defects are comparatively cheap and are among the few things a seller will often fix before closing, making them useful negotiating leverage.",
+      "files": []
+    },
+    {
+      "id": 7,
       "prompt": "export this as html document summarized up nicely",
       "expected_output": "Produces a single self-contained HTML file with inlined CSS, no external assets or CDN links, severity badges, a bottom-line verdict box near the top, and print-friendly styling. Saves it somewhere the user can reach it and offers to open it.",
       "files": []
     },
     {
-      "id": 6,
+      "id": 8,
       "prompt": "What should I go check myself before I make an offer on this house?",
       "expected_output": "Produces a fieldwork list covering repeat visits at different times including a weekday evening and a weekend, parking pressure, conversations with the immediate neighbours, noise and smell at different hours, and items to verify with the kommune such as the lokalplan and kloak. Frames them as actions to perform rather than things to look at, and ends on the question of whether the house is still worth it if every remediation landed in year one.",
       "files": []
+    },
+    {
+      "id": 9,
+      "prompt": "Here's the tilstandsrapport for a 4,000,000 kr house I'm bidding on. The estate agent says it \"scores well on all the things I said mattered\" - good commute, right size, decent energy label. Give me the score and tell me straight whether I should be reassured by it.",
+      "expected_output": "Does not report a single number. Reports a specification score from the weighted sub-scores, then a separate condition adjustment computed from the severity counts (0.60/0.25/0.05 per critical/serious/minor, capped at 3.0) and, if a remediation estimate exists, a cost-based penalty of 16x reserve/price, taking the larger of the two and showing both with the working. Reports the adjusted total. Explicitly pushes back on the agent's framing by explaining that the sub-scores describe the property's specification and say nothing about whether this one is sound. Lists any safety items - missing redningsaabning, shock or fire risk, risiko for personskade - separately as must-fix-before-occupancy rather than folding them into the arithmetic.",
+      "files": [
+        "tilstandsrapport.pdf"
+      ]
     }
   ]
 }

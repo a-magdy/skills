@@ -93,14 +93,15 @@
 <h2>Snapshot</h2>
 <div class="grid">
   <!-- FILL: repeat this cell per key fact -->
+  <div class="cell"><div class="k">Ownership form</div><div class="v"><!-- FILL: Ejerbolig / Andelsbolig / Ejerlejlighed. Put this first — it changes what every figure below means. --></div></div>
   <div class="cell"><div class="k">Asking price</div><div class="v"><!-- FILL --></div></div>
   <div class="cell"><div class="k">Price per m&sup2;</div><div class="v"><!-- FILL --></div></div>
-  <div class="cell"><div class="k">Public valuation</div><div class="v"><!-- FILL --></div></div>
+  <div class="cell"><div class="k">Public valuation</div><div class="v"><!-- FILL: for an andel, give maksimalpris and the andelskrone basis instead --></div></div>
   <div class="cell"><div class="k">Living area</div><div class="v"><!-- FILL --></div></div>
   <div class="cell"><div class="k">Rooms</div><div class="v"><!-- FILL --></div></div>
   <div class="cell"><div class="k">Plot</div><div class="v"><!-- FILL --></div></div>
   <div class="cell"><div class="k">Built</div><div class="v"><!-- FILL --></div></div>
-  <div class="cell"><div class="k">Ejerudgift</div><div class="v"><!-- FILL --></div></div>
+  <div class="cell"><div class="k">Ejerudgift / boligafgift</div><div class="v"><!-- FILL: label it correctly for the tenure --></div></div>
   <div class="cell"><div class="k">Energy label</div><div class="v"><!-- FILL --></div></div>
   <div class="cell"><div class="k">Heating</div><div class="v"><!-- FILL --></div></div>
   <div class="cell"><div class="k">Condition report</div><div class="v"><!-- FILL --></div></div>
@@ -166,9 +167,10 @@
   <tr><th>Item</th><th class="num">Amount</th></tr>
   <tr><td>Asking price</td><td class="num"><!-- FILL --></td></tr>
   <tr><td>Cash needed at signing</td><td class="num"><!-- FILL --></td></tr>
-  <tr><td>Ejerudgift</td><td class="num"><!-- FILL --></td></tr>
-  <tr><td>Property tax recalculated on your basis</td><td class="num"><!-- FILL --></td></tr>
-  <tr><td>Mortgage incl. bidrag</td><td class="num"><!-- FILL --></td></tr>
+  <tr><td>Realkredit (to 80% LTV), incl. bidrag</td><td class="num"><!-- FILL: an andelsbolig has no realkredit leg — replace both loan rows with a single bank andelsboliglån row --></td></tr>
+  <tr><td>Boliglån (the slice above the cap)</td><td class="num"><!-- FILL: note the rate, term, and whether it is the bank's real offer or an assumption --></td></tr>
+  <tr><td>Ejerudgift (or boligafgift)</td><td class="num"><!-- FILL --></td></tr>
+  <tr><td>Property-tax uplift the buyer inherits</td><td class="num"><!-- FILL: the DELTA only. Ejerudgift already contains the seller's property tax, so adding the full recomputed figure counts it twice. For an andel write "n/a — paid by the forening, already inside the boligafgift" rather than deleting the row, so the reader sees it was considered. --></td></tr>
   <tr><td>Your own transaction costs</td><td class="num"><!-- FILL --></td></tr>
   <tr><td>Consumption</td><td class="num"><!-- FILL --></td></tr>
   <tr><td>Annual sinking fund</td><td class="num"><!-- FILL --></td></tr>
@@ -189,11 +191,17 @@
     <tr><th>Criterion</th><th class="num">Score</th><th>Basis</th></tr>
     <!-- FILL: one row per sub-score. Bar width in px = score * 10. -->
     <tr><td>Commute</td><td class="num">0.0 <span class="bar" style="width:0px"></span></td><td><!-- FILL --></td></tr>
-    <tr class="total"><td>Weighted total</td><td class="num"><!-- FILL --></td><td>Before condition adjustment</td></tr>
+    <tr class="total"><td>Specification score</td><td class="num"><!-- FILL --></td><td>Weighted sub-scores only</td></tr>
+    <!-- FILL: condition adjustment. Larger of the count-based and cost-based penalty,
+         per references/scoring.md. Show the working in the Basis cell so the reader can
+         argue with it. -->
+    <tr><td>Condition adjustment</td><td class="num">−0.0</td><td><!-- FILL: e.g. "4 critical, 1 serious; ~500,000 kr reserve = 12.5% of price" --></td></tr>
+    <tr class="total"><td>Adjusted score</td><td class="num"><!-- FILL --></td><td>What this property is actually worth to you</td></tr>
   </table>
-  <p><strong>Important caveat:</strong> the scoring model has no term for condition-report
-  findings, so <!-- FILL: the critical defects --> are not reflected in that number.
-  Judged on condition, treat this as <!-- FILL: adjusted judgement -->.</p>
+  <p><strong>Outside the arithmetic:</strong> <!-- FILL: any safety items — missing
+  redningsåbning, shock or fire risk, anything marked risiko for personskade. These are
+  must-fix-before-occupancy, not score deductions. Write "none identified" if there are
+  none. --></p>
 </div>
 
 <h2>Verdict</h2>

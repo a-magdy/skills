@@ -10,7 +10,9 @@ Use this order. It moves from "what is it" to "what's wrong" to "what does it co
 do I do" — which is the order a buyer actually thinks in.
 
 1. **Snapshot** — key facts table: price, kr/m², public assessment, area, rooms, plot, build
-   year, ejerudgift, energy label, heating, condition-report status
+   year, ejerudgift, energy label, heating, condition-report status. **State the ownership
+   form in the first line** — ejer, andel or lejlighed changes what every later number means,
+   and a reader who assumes the wrong one misreads the whole report.
 2. **Red flags** — ranked by financial and safety severity, *not* document order
 3. **Secondary concerns**
 4. **Fit against preferences** — hard filters (pass/fail) kept separate from scoring; commute
@@ -18,9 +20,24 @@ do I do" — which is the order a buyer actually thinks in.
 5. **Area & neighbourhood** — crime, demographics, facilities, transport, planned development,
    environment. Sourced.
 6. **Price history & downside risk** — including 2008 peak-to-trough and recovery time
-7. **Valuation** — asking vs assessment vs comparables; suggested offer range
-8. **Cost** — itemised table
-9. **Score** — total, sub-scores, and the condition caveat
+7. **Valuation** — asking vs assessment vs comparables; suggested offer range. **For an
+   andelsbolig, valuation works the other way round:** the price is capped by *maksimalprisen*
+   derived from the andelskrone, so the question is not "is this worth the asking price?" but
+   "is the asking price legal, and how was the forening's valuation basis set?" Check which
+   basis is used — anskaffelsespris, offentlig vurdering or valuarvurdering — because a
+   valuar-based andelskrone can fall at the next revaluation and take the resale value with
+   it. Overpricing above maksimalpris is unlawful and recoverable from the seller.
+8. **Cost** — itemised table. Show the realkredit and boliglån legs on separate rows, and
+   add only the property-tax *uplift* rather than the full recomputed figure, since
+   ejerudgift already contains the seller's tax. Mark any assumed bank rate as assumed.
+   **For an andelsbolig this section is shaped differently:** the recurring charge is
+   *boligafgift*, not ejerudgift; there is no realkredit leg, because the buyer finances with
+   a bank andelsboliglån; and ejendomsværdiskat and grundskyld do not appear at all, since
+   the forening is the taxpayer and its bill is already inside the boligafgift. Print the tax
+   line as "n/a — paid by the forening" rather than omitting it, so the reader can see it was
+   considered rather than forgotten. Add a row for the buyer's share of the forening's debt,
+   which is a real liability that sits outside the purchase price.
+9. **Score** — specification score, sub-scores, condition adjustment, adjusted total
 10. **Pros / Cons** — side by side, concrete
 11. **Pre-offer checklist** — numbered actions, including which documents are still missing
 12. **Unknowns & open items**

@@ -78,8 +78,9 @@ python scripts/extract_property_pdfs.py <pdf-or-directory> [--outdir DIR]
 ```
 
 It auto-detects document type, pulls the text, decodes each defect's severity by sampling
-the icon colour in page draw order, and renders the energy label page to an image you can
-read. Run it before anything else; it saves you rediscovering the technique each time.
+the icon colour in page draw order, parses the electrical report's risk categories, and
+renders the energy label page to an image you can read. Run it before anything else; it
+saves you rediscovering the technique each time.
 
 **If a PDF is scanned or image-only** (the script returns little or no text), use the
 `pdf` skill to OCR it into a text layer first, then re-run `extract_property_pdfs.py` on the
@@ -137,19 +138,37 @@ for five months with one reduction is a different conversation than one listed l
 Read `references/calculations.md` before producing any numbers. It contains the formulas and,
 more importantly, the Danish-specific traps that a generic mortgage calculation misses.
 
-The one that matters most: **the seller's `skatterabat` does not transfer to a buyer.** Since
-the 2024 reform, the current owner's property-tax discount is personal to them. The buyer pays
-the full recalculated ejendomsværdiskat and grundskyld from day one. The tax figures printed
-in the salgsopstilling can therefore understate the buyer's actual bill substantially. Compute
-what *the user* will pay, not what the seller pays, and show the difference.
+**Establish the ownership form first.** An `ejerbolig`/`ejerlejlighed` and an `andelsbolig`
+are different products, not variations: an andelshaver owns a share in a cooperative, cannot
+get a realkreditlån, pays `boligafgift` rather than `ejerudgift`, and is not levied
+ejendomsværdiskat or grundskyld personally. Applying the ejerbolig model to an andelsbolig
+invents a tax bill that does not exist and assumes financing that is not available. Pass
+`--tenure andel` and shift your scrutiny to the association's accounts, debt per andel and
+any legacy swap contracts — for a cooperative those matter more than the flat itself. The
+document checklist and the three things that actually move the number (valuation basis, loan
+structure, debt share) are in `references/research-sources.md` under *Andelsboligforeningen*;
+ask the user for those documents early, because without the regnskab the analysis is guesswork.
+
+The trap that matters most for an ejerbolig: **the seller's `skatterabat` does not transfer
+to a buyer.** Since the 2024 reform, the current owner's property-tax discount is personal to
+them. The buyer pays the full recalculated ejendomsværdiskat and grundskyld from day one. The
+tax figures printed in the salgsopstilling can therefore understate the buyer's actual bill
+substantially. Compute what *the user* will pay, not what the seller pays, and show the
+difference. Add only the *uplift* to the monthly total, since ejerudgift already contains the
+seller's tax — adding the whole recomputed figure double-counts it.
+
+**Financing is two loans, not one.** Realkredit is capped at 80% of value; the slice above it
+must be a bank `boliglån` at a materially higher rate and shorter term, carrying no
+bidragssats. Modelling a high-LTV purchase as one cheap annuity understates it by roughly
+1,000–2,400 kr/month while looking entirely plausible. Minimum deposit is 5%.
 
 Always separate these, so the user can see which numbers are soft:
 
 - asking price, and total cash needed at signing
-- ejerudgift
-- mortgage estimate, with your assumptions stated — and check whether the broker's
-  `standardfinansiering` is actually obtainable, since the salgsopstilling sometimes says
-  outright that it is not
+- ejerudgift (or boligafgift)
+- the realkredit and boliglån legs shown separately, with your assumptions stated — and
+  check whether the broker's `standardfinansiering` is actually obtainable, since the
+  salgsopstilling sometimes says outright that it is not
 - the buyer's own transaction costs, which the salgsopstilling excludes by law: advokat,
   independent byggeteknisk gennemgang, kurssikring, bankgaranti, loan fees
 - consumption costs, fixed charges as well as unit rates
@@ -166,8 +185,12 @@ The script does the arithmetic:
 
 ```bash
 python scripts/property_finance.py --price 4000000 --down 200000 --rate 4.0 \
-    --ejerudgift 3200 --json
+    --boliglaan-rate 6.5 --ejerudgift 3200 --json
 ```
+
+It emits `!!` warnings for anything structurally wrong with the financing — a deposit below
+the legal minimum, an assumed bank rate, rate constants older than the current year. Those
+belong in the report, not just in your working.
 
 ### Checks the standard reports explicitly exclude
 
@@ -218,9 +241,12 @@ Flag explicitly anything the **ejerskifteforsikring will not cover because it is
 documented in the reports** — buyers consistently assume insurance catches these, and it is
 precisely the documented ones it excludes.
 
-Scoring rules are in `references/scoring.md`. One caveat to state in the report every time:
-the score has no term for condition-report findings, so a property with critical defects can
-still score well. Say so, and give your adjusted judgement alongside the computed number.
+Scoring rules are in `references/scoring.md`. Report the score as two lines rather than one —
+a **specification score** from the weighted sub-scores, then a **condition adjustment**
+derived from the severity counts, then the adjusted total. The sub-scores describe what kind
+of property it is; only the adjustment describes whether this particular one is sound.
+Collapsing them hides the distinction a buyer most needs, and quoting the unadjusted figure
+alone is how a report ends up recommending a house with a failing roof.
 
 ---
 
