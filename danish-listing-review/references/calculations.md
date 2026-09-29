@@ -19,11 +19,20 @@ monthly = principal / n                                  if r <= 0
 monthly = principal * r / (1 - (1 + r)^(-n))             otherwise
 ```
 
-Danish purchases normally split into a **realkreditlån** up to 80% LTV at the mortgage-bond
-rate, plus a **boliglån** from the bank for the remainder above the down payment, at a
-materially higher rate (often the reference rate plus ~3 percentage points). Model them
-separately when you know both rates — blending them into one average understates the early
-years, because the expensive bank loan amortises against a smaller balance.
+Danish purchases normally split into a **realkreditlån** capped at **80% of the property's
+value** at the mortgage-bond rate, plus a **boliglån** from the bank for the slice between
+that cap and the down payment, at a materially higher rate (often the reference rate plus
+~3 percentage points) and usually a shorter term. The cap is a legal limit, not a
+preference — the bank loan is not optional at high LTV.
+
+`property_finance.py` now splits these automatically and charges bidragssats only on the
+realkredit portion, because bank loans do not carry it. Blending everything into one cheap
+annuity understates a 95%-LTV purchase by roughly 1,000–2,400 kr/month and, worse, looks
+plausible while doing it. Pass `--boliglaan-rate` and `--boliglaan-term` when you know the
+bank's actual offer; otherwise the script assumes 7%/20yr and says so in the output.
+
+**Minimum udbetaling is 5%** of the price for owner-occupied property. Anything below that
+is not obtainable financing, and the script flags it rather than quietly modelling it.
 
 ### Bidragssats (contribution margin)
 
@@ -36,9 +45,33 @@ band. Rough current shape for owner-occupied:
 | 40–60% | ~0.55–0.70% |
 | 60–80% | ~0.75–1.00% |
 
-This is charged on the outstanding balance annually. It is why increasing the down payment
-from 5% to 20% improves the monthly figure by more than the interest saving alone suggests,
-and it is worth showing the user that comparison explicitly — it often changes their plan.
+This is charged on the outstanding balance annually — on the **realkredit loan only**. It is
+why increasing the down payment from 5% to 20% improves the monthly figure by more than the
+interest saving alone suggests: it shrinks the expensive bank loan and drops the bidrag
+band at the same time. Showing the user that comparison explicitly often changes their plan.
+
+### Ownership form changes the whole model
+
+Establish whether the property is an **ejerbolig/ejerlejlighed** or an **andelsbolig**
+before computing anything. They are not variations on a theme; they are different products:
+
+| | Ejerbolig | Andelsbolig |
+|---|---|---|
+| What you own | The property | A share in a cooperative |
+| Financing | Realkredit to 80% + boliglån | No realkredit — bank andelsboliglån only, higher rate, shorter term |
+| Monthly to association | Ejerudgift | Boligafgift |
+| Ejendomsværdiskat / grundskyld | Buyer pays both | Not levied on the andelshaver — the association pays, and it is already inside the boligafgift |
+| Price ceiling | Market | Capped by `maksimalpris` from the andelskrone |
+| The decisive document | Tilstandsrapport | The association's accounts, its debt, and any interest-rate swaps |
+
+Run the script with `--tenure andel` for cooperatives. Applying the ejerbolig model to an
+andelsbolig invents a property-tax bill that does not exist and assumes financing that is
+not available, so the error is large and in both directions at once.
+
+For an andelsbolig the association's balance sheet matters more than the flat. Check the
+andelskrone and how it was valued, the association's total debt per andel, whether it holds
+legacy swap contracts, and whether the boligafgift has been raised recently or is about to
+be. A cheap andel in an indebted association is not cheap.
 
 ## 2. The tax trap: skatterabat does not transfer
 
@@ -209,6 +242,7 @@ set caps there.
 ```bash
 python scripts/property_finance.py \
     --price 4000000 --down 200000 --rate 4.0 --term 30 \
+    --boliglaan-rate 6.5 --boliglaan-term 20 \
     --ejerudgift 3200 \
     --tax-base-value 2500000 --tax-base-land 1400000 --kommune-permille 6.3 \
     --remediation 500000 \
@@ -216,6 +250,18 @@ python scripts/property_finance.py \
 ```
 
 Figures above are illustrative placeholders — substitute the ones from the salgsopstilling.
+Add `--tenure andel` for an andelsbolig. The script prints `!!` warnings for anything
+structurally wrong with the financing (below-minimum deposit, assumed bank rate, stale rate
+constants) — surface those in the report rather than only the numbers.
+
+### One thing not to double-count
+
+Ejerudgift already contains the seller's property tax. Adding your recomputed buyer-basis
+tax on top of it counts the tax twice; ignoring the recomputation entirely leaves the
+seller's discounted figure in the buyer's budget. The script threads this by adding only
+the **uplift** — the delta between what the buyer will pay and what the listing showed — and
+labels it as such. If you do this arithmetic by hand, do the same.
+
 
 Omit what you do not know; the script marks those outputs `unknown` rather than guessing.
 `--json` emits machine-readable output for building the report tables.
