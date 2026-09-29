@@ -12,9 +12,9 @@
 #   ./install.sh -h | --help              # show this help
 #
 # Targets (repeatable; default is --claude only):
-#   --claude            ~/.claude/skills   (APM skills sourced from .claude/skills/)
+#   --claude            ~/.claude/skills   (APM skills sourced from .agents/skills/)
 #   --copilot           ~/.copilot/skills  (APM skills sourced from .agents/skills/)
-#   --target PATH       custom dir         (APM skills sourced from .claude/skills/)
+#   --target PATH       custom dir         (APM skills sourced from .agents/skills/)
 #
 # Defaults:
 #   - mode:   symlink (so edits in this repo flow through to the agent)
@@ -48,9 +48,9 @@ while [[ $# -gt 0 ]]; do
   case "$1" in
     --copy)    MODE="copy"; shift ;;
     --symlink) MODE="symlink"; shift ;;
-    --claude)  TARGET_DIRS+=("$CLAUDE_TARGET");  TARGET_APM_SRCS+=(".claude/skills"); shift ;;
+    --claude)  TARGET_DIRS+=("$CLAUDE_TARGET");  TARGET_APM_SRCS+=(".agents/skills"); shift ;;
     --copilot) TARGET_DIRS+=("$COPILOT_TARGET"); TARGET_APM_SRCS+=(".agents/skills"); shift ;;
-    --target)  TARGET_DIRS+=("$2");              TARGET_APM_SRCS+=(".claude/skills"); shift 2 ;;
+    --target)  TARGET_DIRS+=("$2");              TARGET_APM_SRCS+=(".agents/skills"); shift 2 ;;
     --dry-run) DRY_RUN=true; shift ;;
     -h|--help) print_help; exit 0 ;;
     --) shift; SKILLS_TO_INSTALL+=("$@"); break ;;
@@ -62,7 +62,7 @@ done
 # Default to Claude only when no target flag was given (backward compatible).
 if [ ${#TARGET_DIRS[@]} -eq 0 ]; then
   TARGET_DIRS=("$CLAUDE_TARGET")
-  TARGET_APM_SRCS=(".claude/skills")
+  TARGET_APM_SRCS=(".agents/skills")
 fi
 
 # ---- Discover skills ----------------------------------------------------------
@@ -72,7 +72,7 @@ REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # ---- Ensure APM dependencies are fetched -------------------------------------
 
 if [ -f "$REPO_ROOT/apm.yml" ] && command -v apm &>/dev/null; then
-  if [ ! -d "$REPO_ROOT/.claude/skills" ] || [ ! -d "$REPO_ROOT/apm_modules" ]; then
+  if [ ! -d "$REPO_ROOT/.agents/skills" ] || [ ! -d "$REPO_ROOT/apm_modules" ]; then
     if $DRY_RUN; then
       echo "would run apm install to fetch dependencies (skipped in dry run)"
       echo
@@ -94,10 +94,10 @@ mapfile -t REPO_SKILLS < <(
     | sort
 )
 
-# APM-managed skills live under .claude/skills/ after `apm install`.
+# APM-managed skills live under .agents/skills/ after `apm install`.
 mapfile -t APM_SKILLS < <(
-  if [ -d "$REPO_ROOT/.claude/skills" ]; then
-    find "$REPO_ROOT/.claude/skills" -mindepth 2 -maxdepth 2 -name SKILL.md -type f \
+  if [ -d "$REPO_ROOT/.agents/skills" ]; then
+    find "$REPO_ROOT/.agents/skills" -mindepth 2 -maxdepth 2 -name SKILL.md -type f \
       | xargs -n1 dirname \
       | xargs -n1 basename \
       | sort

@@ -7,7 +7,6 @@ author: Ahmed Magdy
 # Accepted values: copilot, claude, cursor, opencode, codex, gemini, windsurf, all
 targets:
 - copilot
-- claude
 dependencies:
   apm:
     - anthropics/skills/skills/frontend-design
