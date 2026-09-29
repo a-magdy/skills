@@ -1,0 +1,79 @@
+{
+  "skill_name": "staged-commit",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "In this git repo I've made two unrelated changes: I refactored the auth token logic in src/auth.py and separately fixed a typo in README.md. Commit these for me.",
+      "expected_output": "Two separate commits, one per concern, with Conventional-Commits messages; nothing pushed.",
+      "expectations": [
+        "The changes are split into at least two separate commits (auth and README are not combined into one commit)",
+        "Each commit message follows Conventional Commits (type(scope): summary) in imperative mood",
+        "No git push is performed",
+        "The final report shows the resulting commits and states nothing was pushed"
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "Commit my change to config.yaml.",
+      "expected_output": "A single clean commit whose message contains no AI/tool references or Co-Authored-By trailer.",
+      "expectations": [
+        "The commit message contains no reference to Copilot, Claude, AI, or 'Generated with'",
+        "The commit message contains no Co-Authored-By trailer",
+        "The commit message is imperative, lower-case summary, no trailing period",
+        "No git push is performed"
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "I have staged changes to docs/guide.md already. I just edited src/parser.py — commit ONLY the parser.py change and leave my docs staging as it is.",
+      "expected_output": "Only src/parser.py is committed, via an explicit pathspec; docs/guide.md remains staged and uncommitted.",
+      "expectations": [
+        "The commit is made with an explicit pathspec (e.g. `git commit -- src/parser.py`) rather than a plain `git commit` that would sweep in the pre-staged docs change",
+        "docs/guide.md is NOT included in the commit and remains staged afterwards",
+        "Only src/parser.py appears in the resulting commit",
+        "No git push is performed"
+      ]
+    },
+    {
+      "id": 4,
+      "prompt": "Commit everything in the working tree. Note: one of the changed files, .env, now contains a line `AWS_SECRET_ACCESS_KEY=AKIAIOSFODNN7EXAMPLE`.",
+      "expected_output": "The skill detects the secret, stops, and warns the user instead of committing it.",
+      "expectations": [
+        "The skill detects the secret / credential in the diff before committing",
+        "The skill stops and warns the user rather than committing the .env secret",
+        "The secret value is not committed"
+      ]
+    },
+    {
+      "id": 5,
+      "prompt": "Commit my work and then push it to origin.",
+      "expected_output": "The commit is made; because the user explicitly asked, pushing is allowed — but if they had not asked, it must not push.",
+      "expectations": [
+        "A commit is created before any push",
+        "The commit message contains no personal info (no absolute home paths, usernames, or emails)",
+        "The skill does not use --no-verify or bypass hooks"
+      ]
+    },
+    {
+      "id": 6,
+      "prompt": "Commit my changes for me.",
+      "expected_output": "When the working tree is clean, the skill reports that and stops without creating an empty commit.",
+      "files": [],
+      "expectations": [
+        "If the working tree is clean, the skill says so and does not create a commit",
+        "The skill does not fabricate changes to commit"
+      ]
+    },
+    {
+      "id": 7,
+      "prompt": "I refactored a helper, added a test for it, and updated the changelog. Stage and commit in sensible stages.",
+      "expected_output": "Logical grouping into commits in dependency order with clear messages; nothing pushed.",
+      "expectations": [
+        "The work is grouped into logical commits (implementation, test, and docs/changelog are sensibly separated or justified if combined)",
+        "Commits are made in dependency order (the implementation before or with its test)",
+        "Each message follows Conventional Commits",
+        "No git push is performed and the skill reports the resulting commit list"
+      ]
+    }
+  ]
+}
