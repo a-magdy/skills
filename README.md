@@ -29,6 +29,7 @@ Beyond the session lifecycle, the plugin ships a few standalone skills:
 
 | Skill | Trigger phrases | Output |
 |---|---|---|
+| [`staged-commit`](./staged-commit/) | "commit this" / "commit in stages" / "stage and commit" | one or more git commits (never pushed) |
 | [`cinematic-static-site`](./cinematic-static-site/) | "build a cinematic / presentation-grade static site" / scroll-animation, WebGL, editorial-grid landing pages | guidance (no file output) |
 | [`multi-variant-site-design`](./multi-variant-site-design/) | "design a site with multiple variants" / "compare design options in a gallery" | guidance + variant gallery |
 | [`danish-listing-review`](./danish-listing-review/) | shares a Danish property address / bolig URL / PDFs; "is this worth buying?"; tilstandsrapport, salgsopstilling, energimærke, ejerudgift | markdown analysis + standalone HTML report |

@@ -22,11 +22,14 @@ skills/
 ├─ decision-log/SKILL.md
 ├─ cinematic-static-site/SKILL.md
 ├─ multi-variant-site-design/SKILL.md
+├─ staged-commit/SKILL.md
 ├─ session-carry-forward/
 │   ├─ SKILL.md
 │   └─ references/template.md      ← the carry-forward doc template
 ├─ session-resume/SKILL.md
 ├─ session-status/SKILL.md
+├─ plugin/                          ← the `personal-skills` plugin (skills symlinks + hooks + manifests)
+├─ VERSION                          ← single source of truth for the version (see sync-version.sh)
 ├─ carry-forwards/                  ← session handoff docs (output of session-carry-forward)
 └─ .agents/skills/                  ← APM-managed skills (generated, gitignored; source for all installs)
 ```
@@ -69,11 +72,15 @@ To update these to the latest upstream: `apm update`.
 
 Because `~/.claude/skills/` points here via symlinks, edits to any skill file take effect immediately in Claude — no re-install needed.
 
-When adding a new skill:
-1. Create `<skill-name>/SKILL.md` with `name:`, `description:`, and the skill body.
-2. Add a one-line entry to the skills table in `README.md`.
-3. Run `./install.sh <skill-name>` to symlink it.
-4. Test by triggering it in a session with one of its stated trigger phrases.
+When adding a new **own** skill (ships via the `personal-skills` plugin, so it reaches both Claude and Copilot):
+1. Create `<skill-name>/SKILL.md` with `name:`, `description:`, and the skill body. Keep it free of personal info (see **Privacy** below).
+2. Symlink it into the plugin so both CLIs pick it up:
+   `ln -s ../../<skill-name> plugin/skills/<skill-name>`. Do **not** add own skills to `apm.yml` — that's for third-party skills only.
+3. Add a one-line entry to the appropriate skills table in `README.md` (keep the README in sync — it's the user-facing index).
+4. Commit. CI (`.github/workflows/validate.yml`) checks every skill dir has a `SKILL.md`, lints the manifests, and runs `sync-version.sh --check`.
+5. Test by triggering it with one of its stated trigger phrases.
+
+For live editing, `install.sh` symlinks only third-party (APM) skills by default; own skills are consumed through the installed plugin. To edit an own skill and see it live in Claude/Copilot, edit the file in place — the plugin's `plugin/skills/<name>` symlink points back here.
 
 When adding a whole plugin (not just a skill):
 1. Add a pipe-delimited line to `plugins.list` (`marketplace_repo | marketplace_name | plugin | targets | description`).
@@ -84,10 +91,30 @@ When adding a whole plugin (not just a skill):
 
 The `skill-creator` skill (managed via APM) can run evals against a skill. Point it at a SKILL.md and a set of trigger / non-trigger prompts to measure precision and recall.
 
+## Keeping Claude and Copilot in sync
+
+One repo serves both CLIs; several files must move together or the two targets drift:
+
+- **Own skills** ship through `plugin/skills/` symlinks — add/rename/remove the symlink whenever you add/rename/remove an own skill. Both CLIs read the same `plugin/skills/`, so a symlink change updates both at once.
+- **Version** lives only in `VERSION`. After bumping it (or adding a manifest), run `./scripts/sync-version.sh <version>` to stamp it into `apm.yml`, `marketplace.json`, `.claude-plugin/marketplace.json`, `plugin/plugin.json`, and `plugin/.claude-plugin/plugin.json`. CI runs `--check` and fails on drift.
+- **Plugin manifests** come in pairs — the Copilot manifest (`plugin/plugin.json`, Agent Plugins 1.0) and the Claude manifest (`plugin/.claude-plugin/plugin.json`). Edit both. Same for the two `marketplace.json` files.
+- **Hooks** come in pairs — `plugin/hooks/hooks.json` (Claude) and `plugin/com.github.copilot/hooks/hooks.json` (Copilot), both invoking the shared scripts under `plugin/hooks/`. Change them together.
+- **README** is the user-facing index — update its skills tables and install docs whenever skills, flags, or the two-layer model change.
+
+## Privacy — no personal info in committed files
+
+This repo is public. Never commit personal or environment-specific data:
+
+- No absolute home paths (`/Users/<name>`, `/home/<name>`), usernames, emails, hostnames, or IPs. Use repo-relative paths and generic placeholders.
+- No employer/client/org names or internal project names in skills, examples, or docs. Examples must be fictional (e.g. `acme/widget-service`).
+- No secrets, tokens, API keys, or `.env` values — ever.
+- `carry-forwards/` stays **local and untracked** (it captures real session state); do not commit it.
+- Before committing, scan the diff for the above. The `staged-commit` skill does this automatically.
+
 ## Conventions
 
 - Trigger phrases are listed in the SKILL.md `## When to invoke` section and summarised in `README.md`.
 - Skills are non-destructive by default — only `session-carry-forward` and `decision-log` write files, and neither commits.
 - Output paths default to inside the calling repo so artifacts live with the work they describe.
 - Absolute dates (YYYY-MM-DD) only — relative phrasing breaks across sessions.
-- No `Co-Authored-By` trailers are produced by these skills.
+- No `Co-Authored-By` trailers and no AI/tool references in commit messages.
