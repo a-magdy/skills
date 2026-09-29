@@ -9,6 +9,7 @@
 #   ./install.sh --target /custom/path    # install to a custom location
 #   ./install.sh session-status           # install only specific skill(s), own or APM
 #   ./install.sh --dry-run                # show what would happen, don't do it
+#   ./install.sh --with-plugins           # after skills, also run install-plugins.sh (whole plugins)
 #   ./install.sh -h | --help              # show this help
 #
 # NOTE: by default this installs only APM-managed (third-party) skills. The
@@ -36,6 +37,8 @@ CLAUDE_TARGET="$HOME/.claude/skills"
 COPILOT_TARGET="$HOME/.copilot/skills"
 MODE="symlink"
 DRY_RUN=false
+WITH_PLUGINS=false
+PLUGIN_ARGS=()
 SKILLS_TO_INSTALL=()
 
 # Parallel arrays: each install target is a (destination dir, APM source subdir) pair.
@@ -52,10 +55,11 @@ while [[ $# -gt 0 ]]; do
   case "$1" in
     --copy)    MODE="copy"; shift ;;
     --symlink) MODE="symlink"; shift ;;
-    --claude)  TARGET_DIRS+=("$CLAUDE_TARGET");  TARGET_APM_SRCS+=(".agents/skills"); shift ;;
-    --copilot) TARGET_DIRS+=("$COPILOT_TARGET"); TARGET_APM_SRCS+=(".agents/skills"); shift ;;
+    --claude)  TARGET_DIRS+=("$CLAUDE_TARGET");  TARGET_APM_SRCS+=(".agents/skills"); PLUGIN_ARGS+=("--claude");  shift ;;
+    --copilot) TARGET_DIRS+=("$COPILOT_TARGET"); TARGET_APM_SRCS+=(".agents/skills"); PLUGIN_ARGS+=("--copilot"); shift ;;
     --target)  TARGET_DIRS+=("$2");              TARGET_APM_SRCS+=(".agents/skills"); shift 2 ;;
     --dry-run) DRY_RUN=true; shift ;;
+    --with-plugins) WITH_PLUGINS=true; shift ;;
     -h|--help) print_help; exit 0 ;;
     --) shift; SKILLS_TO_INSTALL+=("$@"); break ;;
     -*) echo "unknown flag: $1" >&2; exit 2 ;;
@@ -202,3 +206,11 @@ $DRY_RUN || {
     ls -la "$t" | awk 'NR>1 {print "  " $0}'
   done
 }
+
+# Opt-in: also install whole plugins (layer 2) via install-plugins.sh.
+if $WITH_PLUGINS; then
+  echo
+  echo "==> Whole plugins (install-plugins.sh)"
+  $DRY_RUN && PLUGIN_ARGS+=("--dry-run")
+  "$REPO_ROOT/install-plugins.sh" ${PLUGIN_ARGS[@]+"${PLUGIN_ARGS[@]}"}
+fi

@@ -41,6 +41,7 @@ Each skill is a folder with a `SKILL.md` at its root. The SKILL.md frontmatter h
 ./install.sh            # symlink all (native + APM) into ~/.claude/skills/
 ./install.sh --copilot  # also install into ~/.copilot/skills/ (Copilot CLI)
 ./install.sh --dry-run
+./install.sh --with-plugins  # after skills, also run install-plugins.sh (opt-in convenience)
 ./install-plugins.sh    # install whole plugins/harnesses via each CLI (plugins.list)
 ```
 
