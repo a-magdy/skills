@@ -39,5 +39,5 @@ jobs:
             [ -f "$d/SKILL.md" ] || { echo "no SKILL.md in $d"; missing=1; }
           done < <(find . -maxdepth 1 -type d \( \
                      -name 'session-*' -o -name 'decision-log' -o -name 'cinematic-*' \
-                     -o -name 'multi-variant-*' -o -name 'danish-*' \) | sort)
+                     -o -name 'multi-variant-*' -o -name 'danish-*' -o -name 'staged-commit' \) | sort)
           exit $missing
