@@ -1,0 +1,16 @@
+#!/usr/bin/env bash
+# SessionStart hook: if the current project has a carry-forward, surface it so
+# the agent can offer to resume. Read-only, fast, non-blocking.
+
+set -uo pipefail
+
+# Newest carry-forward in the working directory, if any.
+latest="$(ls -1t carry-forwards/*.md 2>/dev/null | head -n1 || true)"
+
+[ -n "$latest" ] || exit 0
+
+cat <<EOF
+A session carry-forward exists at: $latest
+Consider the \`session-resume\` skill to pick up where the last session left off —
+read the doc, run its verification commands, and rebuild the deferred-items task list.
+EOF

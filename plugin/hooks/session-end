@@ -1,0 +1,14 @@
+#!/usr/bin/env bash
+# SessionEnd hook: if the working tree has uncommitted changes, remind the user
+# to capture state. Read-only, non-blocking — never writes or prompts.
+
+set -uo pipefail
+
+git rev-parse --is-inside-work-tree &>/dev/null || exit 0
+
+if [ -n "$(git status --porcelain 2>/dev/null)" ]; then
+  cat <<'EOF'
+Uncommitted changes are present. Consider the `session-carry-forward` skill to
+capture decisions, open items, and verification commands before this session closes.
+EOF
+fi
