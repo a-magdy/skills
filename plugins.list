@@ -1,0 +1,10 @@
+# Whole plugins / harnesses installed natively via each agent CLI's plugin system.
+#
+# Unlike APM skills (symlinked per-skill by install.sh), these are full plugins
+# that carry hooks, session bootstraps, companion tools, and/or MCP servers that a
+# skill-only symlink cannot provide. They are installed with install-plugins.sh.
+#
+# Format (pipe-delimited):
+#   marketplace_repo | marketplace_name | plugin | targets(comma) | description
+#
+obra/superpowers-marketplace | superpowers-marketplace | superpowers | copilot,claude | Agentic SDLC methodology: brainstorming, TDD, systematic-debugging, code review, git worktrees, with a session-start bootstrap
