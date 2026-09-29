@@ -19,6 +19,7 @@ dependencies:
     - ayghri/i-have-adhd/skills/i-have-adhd
     - mattpocock/skills/skills/productivity/grill-me
     - humanlayer/skills/plugins/show-me
+    - humanlayer/skills/plugins/improve-claude-md
   mcp: []
 includes: auto
 scripts: {}

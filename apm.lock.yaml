@@ -1,5 +1,5 @@
 lockfile_version: '1'
-generated_at: '2026-09-18T22:36:20.102174+00:00'
+generated_at: '2026-09-29T04:16:44.671793+00:00'
 apm_version: 0.31.0
 dependencies:
 - repo_url: anthropics/skills
@@ -710,6 +710,24 @@ dependencies:
     .claude/skills/i-have-adhd/agents/openai.yaml: sha256:2c51291283dcefdca43ca6b0c08172f225c7c26a9783ec444d6bdfa51ca96f8f
   content_hash: sha256:27e3b1d7339b6898419c6df77e1339bbd8362e5926e86bb991417c60af390b81
 - repo_url: humanlayer/skills
+  name: improve-claude-md
+  host: github.com
+  resolved_commit: ca7c8088db69e315a8b2deea43820270457f8f3c
+  version: 1.0.0
+  virtual_path: plugins/improve-claude-md
+  is_virtual: true
+  package_type: skill_bundle
+  deployed_files:
+  - .agents/skills/improve-claude-md
+  - .agents/skills/improve-claude-md/SKILL.md
+  - .claude/skills/improve-claude-md
+  - .claude/skills/improve-claude-md/SKILL.md
+  deployed_file_hashes:
+    .agents/skills/improve-claude-md/SKILL.md: sha256:dbc3019c52f2409c031c4261664381c338d206b53ed700120743e374a87a9b8c
+    .claude/skills/improve-claude-md/SKILL.md: sha256:dbc3019c52f2409c031c4261664381c338d206b53ed700120743e374a87a9b8c
+  content_hash: sha256:4406756a84b98e919c2324bc93163200f174b0a9363e810169eef16493a08457
+  declared_license: MIT
+- repo_url: humanlayer/skills
   name: show-me
   host: github.com
   resolved_commit: ca7c8088db69e315a8b2deea43820270457f8f3c
@@ -843,6 +861,24 @@ deployments:
   - ayghri/i-have-adhd/skills/i-have-adhd
   active_owner: ayghri/i-have-adhd/skills/i-have-adhd
   content_hash: sha256:2c51291283dcefdca43ca6b0c08172f225c7c26a9783ec444d6bdfa51ca96f8f
+- kind: project-relative
+  target: claude
+  value: .claude/skills/improve-claude-md
+  runtime: null
+  scope: project
+  owners:
+  - humanlayer/skills/plugins/improve-claude-md
+  active_owner: humanlayer/skills/plugins/improve-claude-md
+  content_hash: null
+- kind: project-relative
+  target: claude
+  value: .claude/skills/improve-claude-md/SKILL.md
+  runtime: null
+  scope: project
+  owners:
+  - humanlayer/skills/plugins/improve-claude-md
+  active_owner: humanlayer/skills/plugins/improve-claude-md
+  content_hash: sha256:dbc3019c52f2409c031c4261664381c338d206b53ed700120743e374a87a9b8c
 - kind: project-relative
   target: claude
   value: .claude/skills/mcp-builder
@@ -2346,6 +2382,24 @@ deployments:
   - ayghri/i-have-adhd/skills/i-have-adhd
   active_owner: ayghri/i-have-adhd/skills/i-have-adhd
   content_hash: sha256:2c51291283dcefdca43ca6b0c08172f225c7c26a9783ec444d6bdfa51ca96f8f
+- kind: project-relative
+  target: copilot
+  value: .agents/skills/improve-claude-md
+  runtime: null
+  scope: project
+  owners:
+  - humanlayer/skills/plugins/improve-claude-md
+  active_owner: humanlayer/skills/plugins/improve-claude-md
+  content_hash: null
+- kind: project-relative
+  target: copilot
+  value: .agents/skills/improve-claude-md/SKILL.md
+  runtime: null
+  scope: project
+  owners:
+  - humanlayer/skills/plugins/improve-claude-md
+  active_owner: humanlayer/skills/plugins/improve-claude-md
+  content_hash: sha256:dbc3019c52f2409c031c4261664381c338d206b53ed700120743e374a87a9b8c
 - kind: project-relative
   target: copilot
   value: .agents/skills/mcp-builder
