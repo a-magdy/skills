@@ -85,6 +85,163 @@ about non-Danish homes. Those are the cases where a keyword match would fire wro
 
 ---
 
+Items 5–18 come from a 2026-09-29 review of the skill against the maintainer's review
+workflow: decode severity icons from the rendered pages; read the energy label from the image,
+not the extracted text; check the salgsopstilling's claims against the technical reports; use
+actual heating consumption rather than the calculated figure; flag anything the
+ejerskifteforsikring won't cover. Items 5–9 are that workflow; 10–18 are other gaps.
+
+## 5. Severity icons: make the rendered page authoritative
+
+**Status:** open · **Impact:** high · **Effort:** a session
+
+The workflow reads severity from the rendered `SKADESOVERSIGT` pages. Today
+`severities_on_page()` reads embedded image XObjects in content-stream order and only falls
+back to rendering when the counts disagree.
+
+- The draw-operator regex `/(I\d+)\s+Do` matches one generator's naming. Other vendors use
+  `/Im0`, `/X5`, or draw icons inside Form XObjects or as vector paths, and all of these
+  come back as zero icons.
+- On a count mismatch the script warns but still zips severities onto rows by position, so
+  a defect can silently get the wrong severity. It should mark the page's rows `unknown`.
+- `COLOUR_MATCH_TOLERANCE = 90` is wide enough that most mid-tones classify as grey, and the
+  `Mulige skader` anchor `(0, 150, 200)` is a guess (the reference itself says "varies").
+
+To do: always render the defect-summary pages to PNG in `--outdir`; read the icons from those
+images as the source of truth; keep the draw-order decode as a cross-check only; tighten the
+tolerance and sample a real "mulige skader" icon.
+
+## 6. Energy label: locate the label instead of a fixed crop
+
+**Status:** open · **Impact:** medium · **Effort:** ~1 hour
+
+- `extract_energy_label()` crops the right 55% × top 30% of page 1. Another template, or a
+  merged bundle where the energy report is not page 1, crops the wrong region.
+- `HEADLINE_PATTERNS["energimaerke"]` reads the label from the salgsopstilling *text* and
+  stores it next to the real fields in `salgsopstilling.json`. Rename it to something like
+  `energimaerke_listing_claim` so it reads as the claim to check, not the answer.
+- The image-first rule lives only in `references/document-extraction.md`. State it in
+  SKILL.md step 2 too.
+
+## 7. Structured cross-check: salgsopstilling claims vs technical reports
+
+**Status:** open · **Impact:** high · **Effort:** ~1 hour
+
+Currently a "habit" in SKILL.md step 2 with no defined output. Make it a step that produces a
+table: claim (quoted, page) → what the reports say (document, page) → verdict (consistent /
+contradicted / unverifiable). Typical rows: renovation claims vs seller disclosure 3.3 and the
+defect list; areas vs BBR; energy label vs the rendered label; included appliances vs
+`Tilbehør`; heating vs energy report page 4. Add a report section, a template block and an eval.
+
+## 8. Heating: actual consumption first, calculated demand as fallback
+
+**Status:** open · **Impact:** high · **Effort:** ~1 hour
+
+`references/calculations.md` §5 and `references/document-extraction.md` tell the model to
+present the energy report's calculated kWh as the baseline, and nothing asks for real usage.
+
+- SKILL.md step 1 table: add `Forbrugsoplysninger` — the last 2–3 years of heating (and
+  electricity/water) consumption from the supplier's annual statements, via the seller or agent.
+- calculations.md §5: actual consumption × current tariffs + fixed charges is the primary
+  figure, adjusted for household size vs the seller's. Calculated demand is the fallback and a
+  cross-check. A large gap between the two is itself a finding (rooms left unheated, a very
+  different household, or an optimistic label).
+- `property_finance.py`: add `--consumption-source actual|calculated` and print it beside the
+  consumption line, flagging `calculated` as soft.
+- Eval: a listing with only an energy label → asks for real bills and labels the calculated
+  figure as modelled.
+
+## 9. Ejerskifteforsikring: a dedicated coverage section
+
+**Status:** open · **Impact:** high · **Effort:** ~1 hour
+
+Today it is a per-red-flag note ("not covered because already documented"). Add a report
+section with one row per material finding: covered by the standard policy / excluded because
+documented / only with an add-on cover / outside the reports' scope and so unassessed. Call out
+that pipes and drains commonly need an add-on, and that kloak, radon and moisture measurement
+are outside the inspection scope. Tell the user to get the offered policy's actual terms rather
+than assuming standard cover. Add a template block and an eval.
+
+## 10. Script invocation is cwd-relative
+
+**Status:** open · **Impact:** medium · **Effort:** 15 minutes
+
+SKILL.md runs `python scripts/extract_property_pdfs.py` and `python scripts/property_finance.py`.
+The agent's working directory is the user's folder, not the skill's, and stock macOS has no
+`python`. Refer to the scripts relative to this skill's directory and use `python3`.
+
+## 11. Merged PDF bundles
+
+**Status:** open · **Impact:** medium · **Effort:** ~1 hour
+
+`detect_type()` classifies a whole file as one type, so a single "salgsmateriale" PDF containing
+every report runs only one handler. Detect type per page range and split before dispatch (or
+split with the `pdf` skill first).
+
+## 12. Electrical parser: legend text and icon noise
+
+**Status:** open · **Impact:** medium · **Effort:** with #2
+
+Adds to #2. The category counter counts every mention of a heading. If a report prints the
+category legend (likely on standard templates), a clean report shows hits in every category.
+Count findings under each heading instead, or subtract a legend baseline. The icon scan also
+runs `severities_on_page()` over every page with the loose tolerance, so logos and photos can
+register as severities — limit it to the findings pages.
+
+## 13. scoring.md contradicts itself on the condition penalties
+
+**Status:** open · **Impact:** low · **Effort:** 5 minutes
+
+"they measure the same thing by different routes, so adding them would double-count" is
+followed by "The two measure different things." Pick one framing; the take-the-larger rule
+works under either.
+
+## 14. Evals: fixtures, numbering, coverage
+
+**Status:** open · **Impact:** high · **Effort:** feeds #1
+
+- Eval 2 names three PDFs but `files` is empty; eval 9 references `tilstandsrapport.pdf`, which
+  is not in `evals/`. Add fictionalised fixtures (no real addresses — this repo is public).
+- #1 lists "7 (andelsbolig)" among the first evals to run; andelsbolig is eval 5 (eval 7 is the
+  HTML export).
+- Add evals for #7, #8 and #9.
+
+## 15. Description: coexistence with the pdf skill, negative cases
+
+**Status:** open · **Impact:** medium · **Effort:** with #4
+
+Adds to #4. The generic `pdf` skill also fires on any PDF, including a Tilstandsrapport — say in
+the description that this skill takes priority for Danish property documents. Step 2 also relies
+on the `pdf` skill for OCR, but that skill arrives via APM/`install.sh`, not with the plugin; on
+a plugin-only install say what to do instead (render the pages and read them visually).
+
+## 16. Rate refresh is overdue
+
+**Status:** due now · **Impact:** medium · **Effort:** 15 minutes — see #3
+
+`RATES_YEAR = 2024`, so the staleness warning fires on every run. Values were not re-verified in
+the review. Also date-stamp the hand-written figures in `references/` (grundskyld 5–10‰,
+bidragssats bands, rentefradrag, remediation cost ranges) so they are refreshed with the
+constants.
+
+## 17. Scoring uses preference keys nothing collects
+
+**Status:** open · **Impact:** low-to-medium · **Effort:** ~30 minutes
+
+`references/scoring.md` and calculations.md §10 use `max_purchase_price`, `max_monthly_expense`,
+`allowed_floors`, POI categories, `max_transfers` and `current_home`. Step 1 asks for
+preferences in prose and never names these. Either define a preferences block in step 1 that
+maps onto them, or rewrite scoring in terms step 1 actually collects.
+
+## 18. Step order: "run it before anything else" vs step 1
+
+**Status:** open · **Impact:** low · **Effort:** 5 minutes
+
+Step 2 says to run the extraction script "before anything else"; step 1 says to ask for
+documents first. Say "as soon as you have the files".
+
+---
+
 ## Deliberately not doing
 
 Recording these so they do not get re-proposed and re-rejected:
