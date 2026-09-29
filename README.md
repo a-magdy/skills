@@ -96,8 +96,56 @@ The following skills are sourced from [`anthropics/skills`](https://github.com/a
 | `pptx` | anthropics/skills |
 | `skill-creator` | anthropics/skills |
 | `xlsx` | anthropics/skills |
+| `i-have-adhd` | ayghri/i-have-adhd |
+| `grill-me` | mattpocock/skills |
+| `show-me` | humanlayer/skills |
+| `improve-claude-md` | humanlayer/skills |
 
 To update to latest upstream versions: `apm update`. The lockfile (`apm.lock.yaml`) pins exact commits and content hashes for reproducibility.
+
+## Two deployment layers
+
+This repo deploys agent context at **two layers**:
+
+| Layer | Source of truth | Deployed by | What it is |
+|---|---|---|---|
+| **Skills** | `apm.yml` + native skill dirs | [`install.sh`](./install.sh) | Individual skills (a `SKILL.md` folder), symlinked into `~/.claude/skills` and `~/.copilot/skills`. |
+| **Whole plugins / harnesses** | [`plugins.list`](./plugins.list) | [`install-plugins.sh`](./install-plugins.sh) | Full plugins installed natively through each agent CLI's own plugin system. |
+
+A symlinked skill is just a `SKILL.md` plus supporting files. A **whole plugin** carries things a symlink can't express — session hooks (auto-bootstrap that re-injects after context compaction), companion tools (a `Skill` tool, subagent/task-list helpers), bundled MCP/LSP servers or agents, and a `plugin.json` / `marketplace.json` manifest the CLI reads. `obra/superpowers` is the canonical example: pulling its skills via APM makes them *available*, but only the whole plugin gives you the always-on methodology, because the auto-bootstrap lives in the plugin's hooks — not in any single `SKILL.md`.
+
+### Whole plugins / harnesses
+
+[`plugins.list`](./plugins.list) is pipe-delimited, one plugin per line (comments start with `#`):
+
+```
+# marketplace_repo | marketplace_name | plugin | targets | description
+obra/superpowers-marketplace | superpowers-marketplace | superpowers | copilot,claude | ...
+```
+
+- **marketplace_repo** — GitHub `owner/repo` of the marketplace to register.
+- **marketplace_name** — the `name` in that marketplace's `marketplace.json` (used as `plugin@marketplace_name`).
+- **plugin** — the plugin's name within the marketplace.
+- **targets** — comma-separated CLIs (`copilot`, `claude`).
+- **description** — free text (informational only).
+
+```sh
+./install-plugins.sh            # install into both copilot and claude (default)
+./install-plugins.sh --dry-run  # preview the exact CLI commands
+./install-plugins.sh --copilot  # only the copilot target
+./install-plugins.sh --claude   # only the claude target
+```
+
+The script is idempotent (re-adding a marketplace or re-installing a plugin is a no-op refresh) and skips any target whose CLI is not on `PATH`, so it's safe to re-run and safe on machines missing one CLI. It exits non-zero only if an actual install command fails.
+
+### Full machine bootstrap
+
+```sh
+git pull
+apm install             # fetch APM skill dependencies (apm.yml)
+./install.sh --copilot  # symlink native + APM skills into ~/.claude and ~/.copilot
+./install-plugins.sh    # install whole plugins/harnesses via each CLI (plugins.list)
+```
 
 ## Design notes
 
