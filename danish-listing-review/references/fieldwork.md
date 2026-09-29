@@ -66,6 +66,14 @@ This is the highest-value hour available, and almost nobody does it.
   answer — *is there anything you'd want to know if you were the one buying?*
 - **The association chair.** Planned assessments, current debt, disputes, pending shared
   works. Ask in writing so you have a record.
+- **In an andelsforening, the bestyrelse is worth a longer conversation** than an ejerforening
+  chair, because they set the boligafgift and hold the loan book. Ask: when does any
+  afdragsfrihed on the forening's loans end, when was the andelskrone last recalculated and on
+  what basis, what is on the maintenance plan for the next five years, and has boligafgift
+  risen in the last three. A chair who cannot answer these quickly is itself a finding — it
+  usually means the forening is run informally, which is fine until it very suddenly is not.
+- **Another andelshaver who recently bought or sold.** They will tell you what the process was
+  actually like, whether the venteliste was honoured, and whether the sale price held.
 - **Anyone walking a dog or pushing a pram.** They will tell you things the agent will not,
   and they have no stake in the sale.
 
@@ -75,6 +83,10 @@ This is the highest-value hour available, and almost nobody does it.
 - School catchment — confirm it, and visit the school.
 - Parking rules: permits, guest parking, allocated versus free-for-all.
 - Bin storage, collection arrangements, post and parcel delivery.
+- **For an andelsbolig, read the vedtægter yourself before bidding.** They govern whether you
+  may sublet (relevant if a job might move you), what renovation needs approval, and how the
+  venteliste works. These are the rules you are actually buying into, and unlike a house,
+  someone else can change them at a generalforsamling.
 - If the property needs exterior work, confirm with the kommune what the lokalplan permits
   *before* you price the job.
 

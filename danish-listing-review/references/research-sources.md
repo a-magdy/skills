@@ -129,6 +129,38 @@ face grundskyld reassessment and back-adjustment, flowing through to member cont
 Several salgsopstillinger now carry boilerplate about this; it is a real cost risk, not just
 legal throat-clearing.
 
+### Andelsboligforeningen — where the real risk lives
+
+For an andelsbolig the association is not a side issue, it *is* the investment. The buyer is
+purchasing a share in a company plus a right to occupy, so the forening's balance sheet
+determines both the monthly cost and whether the price holds. Treat these documents as
+mandatory, not optional:
+
+| Document | What it tells you |
+|---|---|
+| **Seneste årsregnskab** | The forening's debt, reserves, and how the andelskrone was computed |
+| **Vedtægter** | Rules on subletting, renovation, pets, and how the waiting list works |
+| **Referat fra seneste generalforsamling** | Approved works, disputes, planned boligafgift rises |
+| **Nøgleoplysningsskema** | The standardised key-figures sheet — legally required at sale |
+| **Vurderingsrapport** | The valuation underpinning the andelskrone, if valuar-based |
+
+Three specific things to establish, because each can move the number materially:
+
+- **Which valuation basis sets the andelskrone** — `anskaffelsespris` (original cost, most
+  conservative), `offentlig vurdering`, or `valuarvurdering` (an appraiser's market view).
+  Valuar-based foreninger saw andelskroner fall when valuations were revised down; the
+  resale value follows it. Ask when the valuation was last refreshed.
+- **The forening's loan structure.** Interest-only or rentetilpasningslån maturing soon means
+  a boligafgift rise is already scheduled even if nobody has announced it. An `afdragsfrihed`
+  period ending is the single most common cause of a sudden jump.
+- **The buyer's share of the forening's debt.** This is a genuine liability attached to the
+  flat, sitting outside the purchase price, and it is routinely absent from the headline
+  figure. Report it explicitly alongside the price.
+
+Useful sources: **abf-rep.dk** (Andelsboligforeningernes Fællesrepræsentation) for rules and
+standard documents, and **andelsportal.dk** for market context and explanations of how
+maksimalpris is calculated.
+
 ## Honesty about gaps
 
 Some of this will not be findable at neighbourhood granularity — Danish statistics are often
