@@ -1,0 +1,44 @@
+name: validate
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Validate JSON manifests
+        run: |
+          for f in marketplace.json .claude-plugin/marketplace.json \
+                   plugin/plugin.json plugin/.claude-plugin/plugin.json \
+                   plugin/hooks/hooks.json plugin/com.github.copilot/hooks/hooks.json; do
+            [ -f "$f" ] || { echo "missing: $f"; exit 1; }
+            python3 -c "import json,sys; json.load(open('$f')); print('OK  '+ '$f')"
+          done
+
+      - name: Shell syntax check
+        run: |
+          for s in install.sh install-plugins.sh scripts/*.sh \
+                   plugin/hooks/run-hook.sh plugin/hooks/session-start plugin/hooks/session-end; do
+            [ -f "$s" ] || continue
+            bash -n "$s" && echo "OK  $s"
+          done
+
+      - name: Version consistency
+        run: ./scripts/sync-version.sh --check
+
+      - name: Every skill has a SKILL.md
+        run: |
+          missing=0
+          while IFS= read -r d; do
+            [ -f "$d/SKILL.md" ] || { echo "no SKILL.md in $d"; missing=1; }
+          done < <(find . -maxdepth 2 -type d \
+                    -not -path './.*' -not -path './apm_modules/*' \
+                    -not -path './plugin/*' -not -path './scripts' \
+                    -not -path './carry-forwards' \
+                    | grep -E '/(session-|decision-log|cinematic|multi-variant|danish)' || true)
+          exit $missing
