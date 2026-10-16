@@ -10,6 +10,7 @@
 #   ./install.sh session-status           # install only specific skill(s), own or APM
 #   ./install.sh --dry-run                # show what would happen, don't do it
 #   ./install.sh --with-plugins           # after skills, also run install-plugins.sh (whole plugins)
+#   ./install.sh --check                  # report missing / broken / duplicate skills, change nothing
 #   ./install.sh -h | --help              # show this help
 #
 # NOTE: by default this installs only APM-managed (third-party) skills. The
@@ -25,6 +26,12 @@
 #   - mode:   symlink (so edits in this repo flow through to the agent)
 #   - target: ~/.claude/skills
 #
+# --check (read-only): checks ~/.claude/skills and ~/.copilot/skills (or the
+# targets you pass) and reports, per skill: ok, MISSING, BROKEN symlink,
+# COPY (real dir instead of a symlink), DUPLICATE (an own skill that also
+# ships in the plugin), and leftover .bak-* backups. Exits 1 if anything
+# needs fixing or APM skill sources are unavailable.
+#
 # Existing skill folders at the target:
 #   - if a symlink: removed and replaced.
 #   - if a real directory: backed up to `<name>.bak-<YYYYMMDD-HHMMSS>` and replaced.
@@ -37,6 +44,7 @@ CLAUDE_TARGET="$HOME/.claude/skills"
 COPILOT_TARGET="$HOME/.copilot/skills"
 MODE="symlink"
 DRY_RUN=false
+CHECK=false
 WITH_PLUGINS=false
 PLUGIN_ARGS=()
 SKILLS_TO_INSTALL=()
@@ -59,6 +67,7 @@ while [[ $# -gt 0 ]]; do
     --copilot) TARGET_DIRS+=("$COPILOT_TARGET"); TARGET_APM_SRCS+=(".agents/skills"); PLUGIN_ARGS+=("--copilot"); shift ;;
     --target)  TARGET_DIRS+=("$2");              TARGET_APM_SRCS+=(".agents/skills"); shift 2 ;;
     --dry-run) DRY_RUN=true; shift ;;
+    --check)   CHECK=true; shift ;;
     --with-plugins) WITH_PLUGINS=true; shift ;;
     -h|--help) print_help; exit 0 ;;
     --) shift; SKILLS_TO_INSTALL+=("$@"); break ;;
@@ -68,9 +77,15 @@ while [[ $# -gt 0 ]]; do
 done
 
 # Default to Claude only when no target flag was given (backward compatible).
+# --check defaults to both, since the point is to compare them.
 if [ ${#TARGET_DIRS[@]} -eq 0 ]; then
-  TARGET_DIRS=("$CLAUDE_TARGET")
-  TARGET_APM_SRCS=(".agents/skills")
+  if $CHECK; then
+    TARGET_DIRS=("$CLAUDE_TARGET" "$COPILOT_TARGET")
+    TARGET_APM_SRCS=(".agents/skills" ".agents/skills")
+  else
+    TARGET_DIRS=("$CLAUDE_TARGET")
+    TARGET_APM_SRCS=(".agents/skills")
+  fi
 fi
 
 # ---- Discover skills ----------------------------------------------------------
@@ -79,7 +94,7 @@ REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 # ---- Ensure APM dependencies are fetched -------------------------------------
 
-if [ -f "$REPO_ROOT/apm.yml" ] && command -v apm &>/dev/null; then
+if ! $CHECK && [ -f "$REPO_ROOT/apm.yml" ] && command -v apm &>/dev/null; then
   if [ ! -d "$REPO_ROOT/.agents/skills" ] || [ ! -d "$REPO_ROOT/apm_modules" ]; then
     if $DRY_RUN; then
       echo "would run apm install to fetch dependencies (skipped in dry run)"
@@ -93,7 +108,9 @@ if [ -f "$REPO_ROOT/apm.yml" ] && command -v apm &>/dev/null; then
 fi
 
 # Anything that has a SKILL.md one level down is a skill (native skills).
-mapfile -t REPO_SKILLS < <(
+# (while-read loops instead of mapfile so this runs on macOS's bash 3.2.)
+REPO_SKILLS=()
+while IFS= read -r s; do REPO_SKILLS+=("$s"); done < <(
   find "$REPO_ROOT" -mindepth 2 -maxdepth 2 -name SKILL.md -type f \
     -not -path "$REPO_ROOT/.claude/*" \
     -not -path "$REPO_ROOT/.agents/*" \
@@ -103,14 +120,21 @@ mapfile -t REPO_SKILLS < <(
 )
 
 # APM-managed skills live under .agents/skills/ after `apm install`.
-mapfile -t APM_SKILLS < <(
+APM_SKILLS=()
+while IFS= read -r s; do APM_SKILLS+=("$s"); done < <(
   if [ -d "$REPO_ROOT/.agents/skills" ]; then
     find "$REPO_ROOT/.agents/skills" -mindepth 2 -maxdepth 2 -name SKILL.md -type f \
-      | xargs -n1 dirname \
-      | xargs -n1 basename \
+      | while IFS= read -r skill_path; do
+          basename "$(dirname "$skill_path")"
+        done \
       | sort
   fi
 )
+
+if $CHECK && [ -f "$REPO_ROOT/apm.yml" ] && [ ${#APM_SKILLS[@]} -eq 0 ]; then
+  printf '%s\n' 'Check incomplete: no APM skill sources found in .agents/skills. Run "apm install" in this repo, then rerun --check.' >&2
+  exit 1
+fi
 
 # Combined list (native + APM-managed) — used only for explicit-name resolution.
 ALL_SKILLS=("${REPO_SKILLS[@]}" "${APM_SKILLS[@]}")
@@ -126,6 +150,58 @@ fi
 # Pass skill names explicitly to install specific skills (own or APM).
 if [ ${#SKILLS_TO_INSTALL[@]} -eq 0 ]; then
   SKILLS_TO_INSTALL=("${APM_SKILLS[@]}")
+fi
+
+# ---- Check (read-only) --------------------------------------------------------
+
+if $CHECK; then
+  problems=0
+  for TARGET in "${TARGET_DIRS[@]}"; do
+    echo "==> $TARGET"
+    if [ ! -d "$TARGET" ]; then
+      echo "  MISSING    target dir does not exist (nothing installed here)"
+      problems=$((problems+1)); echo; continue
+    fi
+    for skill in "${SKILLS_TO_INSTALL[@]}"; do
+      dst="$TARGET/$skill"
+      if [ -L "$dst" ] && [ ! -e "$dst" ]; then
+        echo "  BROKEN     $skill -> $(readlink "$dst")"; problems=$((problems+1))
+      elif [ -L "$dst" ]; then
+        echo "  ok         $skill"
+      elif [ -d "$dst" ]; then
+        echo "  COPY       $skill (real dir, not a symlink: won't pick up repo changes)"; problems=$((problems+1))
+      else
+        echo "  MISSING    $skill"; problems=$((problems+1))
+      fi
+    done
+    # Own skills ship in the personal-skills plugin; a copy here loads them twice.
+    for skill in "${REPO_SKILLS[@]}"; do
+      case " ${SKILLS_TO_INSTALL[*]} " in *" $skill "*) continue ;; esac
+      if [ -e "$TARGET/$skill" ] || [ -L "$TARGET/$skill" ]; then
+        echo "  DUPLICATE  $skill (also ships in the personal-skills plugin)"; problems=$((problems+1))
+      fi
+    done
+    for entry in "$TARGET"/*; do
+      [ -e "$entry" ] || [ -L "$entry" ] || continue
+      name="$(basename "$entry")"
+      case "$name" in
+        *.bak-*) echo "  BACKUP     $name (left by an earlier install; delete when happy)" ;;
+      esac
+      case " ${SKILLS_TO_INSTALL[*]} ${REPO_SKILLS[*]} " in *" $name "*) continue ;; esac
+      if [ -L "$entry" ] && [ ! -e "$entry" ]; then
+        echo "  BROKEN     $name -> $(readlink "$entry") (not from this repo)"; problems=$((problems+1))
+      fi
+    done
+    echo
+  done
+  if [ "$problems" -eq 0 ]; then
+    echo "All good."
+  else
+    echo "$problems problem(s). Fix: ./install.sh --claude --copilot (and remove any COPY/DUPLICATE dirs)."
+  fi
+  echo 'Plugins are not checked here: run "claude plugin list" and "copilot plugin list".'
+  [ "$problems" -eq 0 ]
+  exit $?
 fi
 
 # ---- Print plan ---------------------------------------------------------------

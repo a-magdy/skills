@@ -1,8 +1,14 @@
 ---
 name: multi-variant-site-design
 description: >
-  Guide for designing a website by generating multiple parallel design variants, housing them in
-  a gallery for comparison, and promoting a winner as the production site.
+  Design a website by building several parallel, working design variants from one content brief,
+  housing them in a comparison gallery, and promoting the winner to production while keeping the
+  rest as an archive. Use when the user wants to see alternatives for a site before committing,
+  e.g. "design variants", "show me a few directions for the site", "gallery of designs",
+  "compare layouts", "A/B site concepts", "design sprint", "I want to see alternatives first".
+  Not for polishing a single design or choosing a visual style for one UI (use frontend-design),
+  and not for adding scroll or WebGL motion to one site (use cinematic-static-site; combine both
+  when the variants should be cinematic).
 ---
 
 # Multi-Variant Site Design

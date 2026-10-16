@@ -1,9 +1,15 @@
 ---
 name: cinematic-static-site
 description: >
-  Guide for building cinematic, presentation-grade static websites with smooth scroll animations,
-  WebGL effects, scroll-triggered reveals, and editorial grid layouts — the kind of high-end
-  agency/corporate site that feels like an interactive story rather than a web page.
+  Build cinematic, presentation-grade static websites: smooth scrolling, GSAP or CSS
+  scroll-triggered reveals, parallax, WebGL backgrounds and chapter-based editorial layouts that
+  feel like an interactive story. Use when the user wants a static or landing site to feel
+  animated, premium or story-like, e.g. "cinematic", "scroll-driven animations", "parallax",
+  "WebGL background", "smooth scrolling", "awwwards-style", "make my static site look amazing",
+  "chapter-based navigation", "smooth transitions between sections". Not for styling a UI,
+  typography or component look without motion (use frontend-design), and not for producing several
+  competing design options (use multi-variant-site-design; combine both when the user wants
+  cinematic variants).
 ---
 
 # Cinematic Static Site Builder

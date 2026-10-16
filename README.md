@@ -6,12 +6,14 @@ All four skills work together along the session lifecycle — **start, middle, e
 
 ## Skills
 
-| Skill | Trigger phrases | Output |
-|---|---|---|
-| [`session-status`](./session-status/) | "summarize so far" / "safe to close?" / "what am I in the middle of" | text reply, non-destructive |
-| [`session-carry-forward`](./session-carry-forward/) | "wrap up" / "/carry-forward" / "create a handoff" | `<repo>/carry-forwards/<YYYY-MM-DD>-<slug>.md` |
-| [`session-resume`](./session-resume/) | "resume from carry-forward" / seed-prompt detection at session start | task list + verification report |
-| [`decision-log`](./decision-log/) | "log this decision" / "ADR for X" / "record this" | append to `<repo>/DECISIONS.md` |
+**Invocation:** *auto* means the agent loads the skill when your prompt matches its `description`; `/name` means it never loads on its own and you type the slash command. Full trigger lists: [`docs/TRIGGERS.md`](./docs/TRIGGERS.md).
+
+| Skill | Invocation | Trigger phrases | Output |
+|---|---|---|---|
+| [`session-status`](./session-status/) | auto | "summarize so far" / "safe to close?" / "what am I in the middle of" | text reply, non-destructive |
+| [`session-carry-forward`](./session-carry-forward/) | auto | "wrap this session" / "carry-forward" / "create a handoff" | `<repo>/carry-forwards/<YYYY-MM-DD>-<slug>.md` |
+| [`session-resume`](./session-resume/) | auto | "resume from carry-forward" / seed-prompt detection at session start | task list + verification report |
+| [`decision-log`](./decision-log/) | auto | "log this decision" / "ADR for X" / "record this" | append to `<repo>/DECISIONS.md` |
 
 ### When each one fires
 
@@ -27,12 +29,12 @@ Project start ──→ … ──→ Long session ──→ Session end ──�
 
 Beyond the session lifecycle, the plugin ships a few standalone skills:
 
-| Skill | Trigger phrases | Output |
-|---|---|---|
-| [`staged-commit`](./staged-commit/) | "commit this" / "commit in stages" / "stage and commit" | one or more git commits (never pushed) |
-| [`cinematic-static-site`](./cinematic-static-site/) | "build a cinematic / presentation-grade static site" / scroll-animation, WebGL, editorial-grid landing pages | guidance (no file output) |
-| [`multi-variant-site-design`](./multi-variant-site-design/) | "design a site with multiple variants" / "compare design options in a gallery" | guidance + variant gallery |
-| [`danish-listing-review`](./danish-listing-review/) | shares a Danish property address / bolig URL / PDFs; "is this worth buying?"; tilstandsrapport, salgsopstilling, energimærke, ejerudgift | markdown analysis + standalone HTML report |
+| Skill | Invocation | Trigger phrases | Output |
+|---|---|---|---|
+| [`staged-commit`](./staged-commit/) | auto | "commit this" / "commit in stages" / "stage and commit" | one or more git commits (never pushed) |
+| [`cinematic-static-site`](./cinematic-static-site/) | auto | "cinematic" / "scroll-driven animations" / "parallax" / "WebGL background" / "smooth scrolling" | guidance (no file output) |
+| [`multi-variant-site-design`](./multi-variant-site-design/) | auto | "design variants" / "show me a few directions for the site" / "compare layouts" | guidance + variant gallery |
+| [`danish-listing-review`](./danish-listing-review/) | auto | shares a Danish property address / bolig URL / PDFs; "is this worth buying?"; tilstandsrapport, salgsopstilling, energimærke, ejerudgift | markdown analysis + standalone HTML report |
 
 ## Per-skill detail
 
@@ -66,7 +68,7 @@ Different from `session-carry-forward`: that skill captures decisions only insid
 
 ## Install
 
-Skills live in `~/.claude/skills/`. To install these:
+The repo's own skills ship as a plugin (see [Install this repo as a plugin](#install-this-repo-as-a-plugin)). `install.sh` links the **third-party** skills into `~/.claude/skills/` and/or `~/.copilot/skills/`:
 
 ```sh
 git clone <this-repo-url> ~/dev/personal/skills
@@ -74,9 +76,9 @@ cd ~/dev/personal/skills
 ./install.sh
 ```
 
-The installer automatically runs `apm install` to fetch third-party dependencies (from `anthropics/skills`) before symlinking everything into `~/.claude/skills/`. Requires [APM](https://github.com/microsoft/apm) (`curl -sSL https://aka.ms/apm-unix | sh`).
+The installer automatically runs `apm install` to fetch third-party dependencies before symlinking them. Requires [APM](https://github.com/microsoft/apm) (`curl -sSL https://aka.ms/apm-unix | sh`).
 
-By default it **symlinks** each skill into `~/.claude/skills/`, so edits you make in this repo flow through immediately. Useful flags:
+By default it **symlinks** each third-party skill into `~/.claude/skills/`, so `apm update` flows through without re-installing. Useful flags:
 
 | Flag | Effect |
 |---|---|
@@ -85,34 +87,57 @@ By default it **symlinks** each skill into `~/.claude/skills/`, so edits you mak
 | `--copy` | copy instead of symlink (no auto-update from this repo) |
 | `--target PATH` | install to a non-default location |
 | `--dry-run` | preview the plan without making changes (no `apm install` is run) |
+| `--check` | read-only health check of `~/.claude/skills` and `~/.copilot/skills`: missing, broken, copied or duplicate skills (exits 1 on problems or unavailable APM skill sources) |
 | `-h`, `--help` | full help text |
-| _positional args_ | install only those skills (e.g. `./install.sh session-status decision-log`) |
+| _positional args_ | install only those skills (e.g. `./install.sh i-have-adhd grill-me`) |
 
 Existing folders at the target are handled safely:
 
 - a previous symlink → removed and replaced;
 - a real directory → backed up to `<name>.bak-<YYYYMMDD-HHMMSS>` and replaced.
 
-After install, the skills auto-activate when Claude recognizes the trigger phrases in the table above. No manual invocation needed — though you can also force one with the Skill tool if Claude doesn't trigger automatically.
+After install, *auto* skills load when your prompt matches their description, and `/name` skills load only when you type the slash command (see the **Invocation** columns). Not firing? See [Troubleshooting](#troubleshooting).
 
 ### Third-party skills (via APM)
 
 The following skills are sourced from [`anthropics/skills`](https://github.com/anthropics/skills) and managed by [APM](https://github.com/microsoft/apm) (declared in `apm.yml`):
 
-| Skill | Source |
-|---|---|
-| `frontend-design` | anthropics/skills |
-| `mcp-builder` | anthropics/skills |
-| `pdf` | anthropics/skills |
-| `pptx` | anthropics/skills |
-| `skill-creator` | anthropics/skills |
-| `xlsx` | anthropics/skills |
-| `i-have-adhd` | ayghri/i-have-adhd |
-| `grill-me` | mattpocock/skills |
-| `show-me` | humanlayer/skills |
-| `improve-claude-md` | humanlayer/skills |
+| Skill | Source | Invocation |
+|---|---|---|
+| `frontend-design` | anthropics/skills | auto |
+| `mcp-builder` | anthropics/skills | auto |
+| `pdf` | anthropics/skills | auto |
+| `pptx` | anthropics/skills | auto |
+| `skill-creator` | anthropics/skills | auto |
+| `xlsx` | anthropics/skills | auto |
+| `i-have-adhd` | ayghri/i-have-adhd | `/i-have-adhd` (stays on until "stop adhd mode") |
+| `grill-me` | mattpocock/skills | `/grill-me` |
+| `show-me` | humanlayer/skills | `/show-me` |
+| `improve-claude-md` | humanlayer/skills | auto |
 
 To update to latest upstream versions: `apm update`. The lockfile (`apm.lock.yaml`) pins exact commits and content hashes for reproducibility.
+
+### Where each tool looks for skills
+
+| Tool | Personal (all projects) | Project (inside a repo) | Plugins |
+|---|---|---|---|
+| Claude Code | `~/.claude/skills` | `.claude/skills` | yes |
+| Copilot CLI | `~/.copilot/skills`, `~/.agents/skills` | `.github/skills`, `.claude/skills`, `.agents/skills` | yes |
+| VS Code Copilot | `~/.copilot/skills`, `~/.claude/skills`, `~/.agents/skills` | `.github/skills`, `.claude/skills`, `.agents/skills` | yes |
+| Claude desktop / claude.ai | none (upload skills in Settings) | none | Cowork plugins only |
+
+Two consequences: APM's `.agents/skills` in this repo makes the third-party skills show up in Copilot **only while you work inside this repo**, and VS Code reads both `~/.claude/skills` and `~/.copilot/skills`, so a skill linked into both can be listed twice there.
+
+## Troubleshooting
+
+Run `./install.sh --check` first. It lists, per tool, which skills are missing, broken, copied instead of linked, or duplicated with the plugin.
+If APM skill sources are absent or empty, the check exits 1 with "Check incomplete" rather than reporting a healthy install. Run `apm install` in this repo, then rerun the check; `--check` never fetches dependencies itself.
+
+Known quirks:
+
+- **Only `description` decides auto-triggering.** Trigger phrases that live only in the SKILL.md body are never seen when the agent picks a skill.
+- **Copilot CLI and `disable-model-invocation: true`:** typing `/i-have-adhd` at the start of the prompt works; asking the model to "use the i-have-adhd skill" does not ([github/copilot-cli#4438](https://github.com/github/copilot-cli/issues/4438)).
+- **New skill not showing mid-session:** `/skills reload` in Copilot CLI; restart Claude Code.
 
 ## Two deployment layers
 
