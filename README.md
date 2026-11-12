@@ -14,6 +14,7 @@ All four skills work together along the session lifecycle — **start, middle, e
 | [`session-carry-forward`](./session-carry-forward/) | auto | "wrap this session" / "carry-forward" / "create a handoff" | `<repo>/carry-forwards/<YYYY-MM-DD>-<slug>.md` |
 | [`session-resume`](./session-resume/) | auto | "resume from carry-forward" / seed-prompt detection at session start | task list + verification report |
 | [`decision-log`](./decision-log/) | auto | "log this decision" / "ADR for X" / "record this" | append to `<repo>/DECISIONS.md` |
+| [`scratch-workspace-routing`](./scratch-workspace-routing/) | auto | session starts in a scratch/temp/home dir but the prompt names a repo, path, branch or session ID / "continue where we left off" | text reply naming the verified repo (or one clarifying question) |
 
 ### When each one fires
 

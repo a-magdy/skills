@@ -1,0 +1,14 @@
+[
+  { "query": "[cwd: a generated scratch workspace, not a git repo] continue where we left off on the widget-service retry bug", "should_trigger": true },
+  { "query": "[cwd: /tmp sandbox] resume session 3f2a9c1e-7b44-4d0a-9e1f-2c6d8a0b5e71 and finish the migration", "should_trigger": true },
+  { "query": "[cwd: home directory] in my acme/widget-service repo, make the failing parser test pass", "should_trigger": true },
+  { "query": "[cwd: scratchpad, no project selected] check out branch fix/retry-backoff and rebase it on main", "should_trigger": true },
+  { "query": "[cwd: scratch workspace] keep going on the dashboard project from yesterday, the chart colours were wrong", "should_trigger": true },
+  { "query": "[cwd: /tmp] open ~/code/billing-api and tell me why CI is red", "should_trigger": true },
+  { "query": "[cwd: scratch workspace] what's the difference between a mutex and a semaphore?", "should_trigger": false },
+  { "query": "[cwd: scratch workspace] write me a quick python script that renames these photos by date", "should_trigger": false },
+  { "query": "[cwd: inside a git repo] fix the failing parser test", "should_trigger": false },
+  { "query": "[cwd: inside a git repo] resume from carry-forward", "should_trigger": false },
+  { "query": "[cwd: inside a git repo] summarize this session so far", "should_trigger": false },
+  { "query": "[cwd: scratch workspace] draft an email to my landlord about the heating", "should_trigger": false }
+]

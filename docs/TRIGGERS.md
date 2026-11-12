@@ -23,6 +23,7 @@ In Copilot CLI, type the slash command yourself; asking the model to "use the i-
 | `session-carry-forward` | "wrap this session" · "create a handoff" · "carry-forward" · "session summary for next time" |
 | `session-resume` | paste a carry-forward seed prompt · "resume from carry-forward" · "pick up from last session" |
 | `decision-log` | "log this decision" · "add to decision log" · "ADR for X" · "remember that we decided Y over Z" |
+| `scratch-workspace-routing` | session started in a scratch/temp/sandbox/home dir **and** the prompt points at a repo: "keep working on widget-service" · "resume session 3f2a…" · "continue where we left off" · "in my acme repo, fix the failing test" |
 
 ## Other own skills (via plugin)
 
@@ -52,3 +53,4 @@ Prompts where two skills compete. Be explicit if the wrong one fires.
 - "wrap up": `session-carry-forward` (handoff doc) vs `staged-commit` ("wrap up my working tree into commits").
 - "make the site look premium": `frontend-design` (visual style) vs `cinematic-static-site` (motion). Add "variants" / "options" and `multi-variant-site-design` joins in.
 - "record this": `decision-log`, but generic enough to miss. Say "log this decision".
+- "continue where we left off": `scratch-workspace-routing` finds the repo when the session started outside it; `session-resume` takes over once a carry-forward doc is found there.
