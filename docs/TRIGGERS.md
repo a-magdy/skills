@@ -25,6 +25,8 @@ In Copilot CLI, type the slash command yourself; asking the model to "use the i-
 | `decision-log` | "log this decision" · "add to decision log" · "ADR for X" · "remember that we decided Y over Z" |
 | `scratch-workspace-routing` | session started in a scratch/temp/sandbox/home dir **and** the prompt points at a repo: "keep working on widget-service" · "resume session 3f2a…" · "continue where we left off" · "in my acme repo, fix the failing test" |
 
+The plugin's SessionStart hook ([`plugin/hooks/session-start`](../plugin/hooks/session-start)) backs `scratch-workspace-routing` up: when a session starts outside any git repo it injects a one-paragraph note pointing at the skill, so routing does not depend on the agent noticing its working directory on its own.
+
 ## Other own skills (via plugin)
 
 | Skill | Example prompts |

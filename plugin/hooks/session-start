@@ -1,8 +1,23 @@
 #!/usr/bin/env bash
-# SessionStart hook: if the current project has a carry-forward, surface it so
-# the agent can offer to resume. Read-only, fast, non-blocking.
+# SessionStart hook. Read-only, fast, non-blocking. Surfaces one of:
+#   - outside a git repo: point at scratch-workspace-routing
+#   - inside a repo with a carry-forward: point at session-resume
 
 set -uo pipefail
+
+# Outside a git repo (scratch workspace, sandbox, /tmp, $HOME): the project's
+# instructions did not load. Nudge toward scratch-workspace-routing; the note
+# only matters if the user's request turns out to need an existing repository.
+if ! git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+  cat <<EOF
+This session started outside any git repository ($(pwd)), so no project
+instructions (CLAUDE.md / AGENTS.md) were loaded. If the user's request refers
+to an existing project (a repo, path, branch, issue, session ID, or "continue
+where we left off"), use the \`scratch-workspace-routing\` skill to find and
+verify the repository before working. Otherwise ignore this note.
+EOF
+  exit 0
+fi
 
 # Newest carry-forward in the working directory, if any.
 latest="$(ls -1t carry-forwards/*.md 2>/dev/null | head -n1 || true)"
