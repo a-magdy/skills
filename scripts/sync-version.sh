@@ -36,7 +36,7 @@ JSON_MANIFESTS=(
 python3 - "$VERSION" "$CHECK" "${JSON_MANIFESTS[@]}" <<'PY'
 import json, sys
 
-version, check_flag = sys.argv[1], sys.argv[2] == "True"
+version, check_flag = sys.argv[1], sys.argv[2] == "true"
 files = sys.argv[3:]
 drift = []
 
