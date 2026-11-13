@@ -97,6 +97,43 @@ Existing folders at the target are handled safely:
 - a previous symlink → removed and replaced;
 - a real directory → backed up to `<name>.bak-<YYYYMMDD-HHMMSS>` and replaced.
 
+### Global instructions
+
+Shared cross-project preferences live in [`config/global/AGENTS.md`](./config/global/AGENTS.md).
+They are separate from this repository's root instructions, which describe maintaining this
+repo and must not be installed globally.
+
+```sh
+# Instructions only; no APM fetches or plugin installation
+bash install-instructions.sh --claude --copilot
+bash install-instructions.sh --check
+bash install-instructions.sh --dry-run
+
+# Include instructions when installing skills
+./install.sh --claude --copilot --with-instructions
+./install.sh --claude --copilot --with-instructions --dry-run
+./install.sh --claude --copilot --with-instructions --check
+```
+
+The instruction installer defaults to both clients. Through `install.sh`, it follows
+explicit `--claude` / `--copilot` selections, otherwise Claude only (both for `--check`),
+matching the skill defaults. A custom skill `--target` does not change instruction paths.
+`--with-instructions` is opt-in; existing skill-only installs are unchanged.
+
+| Destination | Source |
+|---|---|
+| `${CLAUDE_CONFIG_DIR:-~/.claude}/CLAUDE.md` | `config/global/AGENTS.md` |
+| `${COPILOT_HOME:-~/.copilot}/copilot-instructions.md` | `config/global/AGENTS.md` |
+
+Existing files and symlinks (including broken ones) are moved to unique sibling
+`.backup.*` paths. Directories are refused; correct links are left untouched. Dry-run and
+check modes never write files; check exits nonzero for missing/incorrect links. Keep the
+clone at its installed location, or rerun installation after moving it. This does not
+configure VS Code's separate user instructions.
+
+Test the installer without touching live configuration:
+`bats tests/install-instructions.bats`.
+
 After install, *auto* skills load when your prompt matches their description, and `/name` skills load only when you type the slash command (see the **Invocation** columns). Not firing? See [Troubleshooting](#troubleshooting).
 
 ### Third-party skills (via APM)
@@ -133,6 +170,16 @@ Two consequences: APM's `.agents/skills` in this repo makes the third-party skil
 
 Run `./install.sh --check` first. It lists, per tool, which skills are missing, broken, copied instead of linked, or duplicated with the plugin.
 If APM skill sources are absent or empty, the check exits 1 with "Check incomplete" rather than reporting a healthy install. Run `apm install` in this repo, then rerun the check; `--check` never fetches dependencies itself.
+
+For managed skills, the audit requires a linked `SKILL.md` and verifies that the resolved
+directory matches the installer's expected source. It reports `WRONG` for a different
+checkout and `INVALID` for a target without `SKILL.md`; relative links to the right source
+are accepted. Run the shell test suite with `bats tests/*.bats`.
+
+### TODO: integrity follow-ups
+
+- Decide whether to restore or remove broken external skill links reported by `--check`;
+  reinstalling this repo's skills does not repair links owned by other repositories.
 
 Known quirks:
 

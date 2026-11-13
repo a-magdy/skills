@@ -15,6 +15,8 @@ skills/
 ├─ README.md                        ← user-facing overview and install guide
 ├─ install.sh                       ← symlink third-party skills into ~/.claude & ~/.copilot (layer 1); --check audits them
 ├─ install-plugins.sh               ← install whole plugins via each CLI (layer 2)
+├─ install-instructions.sh          ← link global preferences; --check / --dry-run are read-only
+├─ config/global/AGENTS.md          ← shared cross-project preferences, NOT this repo's instructions
 ├─ plugins.list                     ← whole-plugin manifest (pipe-delimited)
 ├─ apm.yml                          ← APM manifest (third-party skill dependencies)
 ├─ apm.lock.yaml                    ← APM lockfile (pinned commits + hashes)
@@ -49,6 +51,12 @@ Each skill is a folder with a `SKILL.md` at its root. The SKILL.md frontmatter h
 ./install.sh --check    # read-only audit of both skill dirs (missing / broken / copy / duplicate)
 ./install.sh --dry-run
 ./install.sh --with-plugins  # after skills, also run install-plugins.sh (opt-in convenience)
+./install.sh --claude --copilot --with-instructions  # opt-in global instruction links
+./install.sh --claude --copilot --with-plugins --with-instructions  # dotfiles bootstrap
+bash install-instructions.sh --claude --copilot --dry-run
+bash install-instructions.sh --claude --check
+bash install-instructions.sh --copilot --check
+bash install-instructions.sh --check  # audit global instruction links only
 ./install-plugins.sh    # install whole plugins/harnesses via each CLI (plugins.list)
 ```
 
@@ -59,6 +67,14 @@ Each skill is a folder with a `SKILL.md` at its root. The SKILL.md frontmatter h
 ```sh
 git pull && apm install && ./install.sh --copilot && ./install-plugins.sh
 ```
+
+Global preferences are a separate, opt-in install, not plugin content. `install-instructions.sh`
+links `config/global/AGENTS.md` into `${CLAUDE_CONFIG_DIR:-$HOME/.claude}/CLAUDE.md`
+and `${COPILOT_HOME:-$HOME/.copilot}/copilot-instructions.md` (both by default). It backs up
+existing files/links to unique `.backup.*` siblings, refuses directories, and leaves correct
+links untouched. `install.sh --with-instructions` follows its CLI selections and forwards
+`--check` / `--dry-run`; custom skill `--target` does not redirect global instructions.
+Never link the root `AGENTS.md` globally. Tests: `bats tests/install-instructions.bats`.
 
 ## APM (Agent Package Manager)
 
@@ -136,4 +152,5 @@ This repo is public. Never commit personal or environment-specific data:
 - **Copilot CLI ignores manual-only skills when the model looks them up.** Skills with `disable-model-invocation: true` work when the user types `/name` at the start of a prompt, but not via "use the X skill" (github/copilot-cli#4438, open as of 2026-09-29).
 - **VS Code reads `~/.claude/skills` as well as `~/.copilot/skills`.** A skill linked into both may be listed twice in VS Code; the CLIs are unaffected.
 - **A copied skill dir goes stale silently.** A real directory in `~/.claude/skills` or `~/.copilot/skills` (instead of a symlink) never picks up repo changes and nothing warns you; `./install.sh --check` flags it as COPY, or DUPLICATE if the plugin also ships it.
+- `install.sh --check` also requires a linked `SKILL.md` and the expected resolved source directory; wrong-source links report WRONG, invalid targets report INVALID. Audit tests: `bats tests/install-audit.bats`.
 - **Plugin CLI verbs** (both `copilot` and `claude`): `plugin list|install|uninstall|update|enable|disable`, `plugin marketplace add|remove`. `uninstall` takes one name at a time (`plugin` or `plugin@marketplace`).

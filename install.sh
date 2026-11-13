@@ -10,6 +10,7 @@
 #   ./install.sh session-status           # install only specific skill(s), own or APM
 #   ./install.sh --dry-run                # show what would happen, don't do it
 #   ./install.sh --with-plugins           # after skills, also run install-plugins.sh (whole plugins)
+#   ./install.sh --with-instructions      # also link global preferences for selected CLI targets
 #   ./install.sh --check                  # report missing / broken / duplicate skills, change nothing
 #   ./install.sh -h | --help              # show this help
 #
@@ -46,6 +47,7 @@ MODE="symlink"
 DRY_RUN=false
 CHECK=false
 WITH_PLUGINS=false
+WITH_INSTRUCTIONS=false
 PLUGIN_ARGS=()
 SKILLS_TO_INSTALL=()
 
@@ -69,6 +71,7 @@ while [[ $# -gt 0 ]]; do
     --dry-run) DRY_RUN=true; shift ;;
     --check)   CHECK=true; shift ;;
     --with-plugins) WITH_PLUGINS=true; shift ;;
+    --with-instructions) WITH_INSTRUCTIONS=true; shift ;;
     -h|--help) print_help; exit 0 ;;
     --) shift; SKILLS_TO_INSTALL+=("$@"); break ;;
     -*) echo "unknown flag: $1" >&2; exit 2 ;;
@@ -86,6 +89,25 @@ if [ ${#TARGET_DIRS[@]} -eq 0 ]; then
     TARGET_DIRS=("$CLAUDE_TARGET")
     TARGET_APM_SRCS=(".agents/skills")
   fi
+fi
+
+# Global instructions use CLI config roots, not a custom skill --target directory.
+if $WITH_INSTRUCTIONS; then
+  if [ ${#PLUGIN_ARGS[@]} -eq 0 ]; then
+    if $CHECK; then
+      INSTRUCTION_ARGS=(--claude --copilot)
+    else
+      INSTRUCTION_ARGS=(--claude)
+    fi
+  else
+    INSTRUCTION_ARGS=("${PLUGIN_ARGS[@]}")
+  fi
+  if $CHECK; then
+    INSTRUCTION_ARGS+=("--check")
+  elif $DRY_RUN; then
+    INSTRUCTION_ARGS+=("--dry-run")
+  fi
+  bash "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/install-instructions.sh" "${INSTRUCTION_ARGS[@]}"
 fi
 
 # ---- Discover skills ----------------------------------------------------------
@@ -154,6 +176,18 @@ fi
 
 # ---- Check (read-only) --------------------------------------------------------
 
+# Resolve sources identically for installation and auditing.
+skill_source() {
+  if [ -f "$REPO_ROOT/$1/SKILL.md" ]; then
+    printf '%s\n' "$REPO_ROOT/$1"
+  elif [ -f "$REPO_ROOT/.agents/skills/$1/SKILL.md" ]; then
+    printf '%s\n' "$REPO_ROOT/.agents/skills/$1"
+  else
+    printf 'No SKILL.md source found for %s\n' "$1" >&2
+    return 1
+  fi
+}
+
 if $CHECK; then
   problems=0
   for TARGET in "${TARGET_DIRS[@]}"; do
@@ -167,7 +201,15 @@ if $CHECK; then
       if [ -L "$dst" ] && [ ! -e "$dst" ]; then
         echo "  BROKEN     $skill -> $(readlink "$dst")"; problems=$((problems+1))
       elif [ -L "$dst" ]; then
-        echo "  ok         $skill"
+        if [ ! -f "$dst/SKILL.md" ]; then
+          echo "  INVALID    $skill (link target has no SKILL.md)"; problems=$((problems+1))
+        elif ! src="$(skill_source "$skill")"; then
+          problems=$((problems+1))
+        elif [ "$(cd "$dst" && pwd -P)" != "$(cd "$src" && pwd -P)" ]; then
+          echo "  WRONG      $skill -> $(readlink "$dst") (expected $src)"; problems=$((problems+1))
+        else
+          echo "  ok         $skill"
+        fi
       elif [ -d "$dst" ]; then
         echo "  COPY       $skill (real dir, not a symlink: won't pick up repo changes)"; problems=$((problems+1))
       else
@@ -229,12 +271,7 @@ for ti in "${!TARGET_DIRS[@]}"; do
   $DRY_RUN || mkdir -p "$TARGET"
 
   for skill in "${SKILLS_TO_INSTALL[@]}"; do
-    # Resolve source: prefer native repo skill, fall back to APM-managed for this target.
-    if [ -d "$REPO_ROOT/$skill" ] && [ -f "$REPO_ROOT/$skill/SKILL.md" ]; then
-      src="$REPO_ROOT/$skill"
-    elif [ -d "$REPO_ROOT/$APM_SRC_REL/$skill" ] && [ -f "$REPO_ROOT/$APM_SRC_REL/$skill/SKILL.md" ]; then
-      src="$REPO_ROOT/$APM_SRC_REL/$skill"
-    else
+    if ! src="$(skill_source "$skill")"; then
       echo "skip: $skill (no SKILL.md found under $APM_SRC_REL)" >&2
       skipped=$((skipped+1))
       continue
