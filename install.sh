@@ -88,6 +88,7 @@ if [ ${#TARGET_DIRS[@]} -eq 0 ]; then
   TARGET_APM_SRCS=(".agents/skills" ".agents/skills")
 fi
 
+INSTRUCTIONS_RC=0
 # Global instructions use CLI config roots, not a custom skill --target directory.
 if $WITH_INSTRUCTIONS; then
   if [ ${#PLUGIN_ARGS[@]} -eq 0 ]; then
@@ -100,7 +101,10 @@ if $WITH_INSTRUCTIONS; then
   elif $DRY_RUN; then
     INSTRUCTION_ARGS+=("--dry-run")
   fi
-  bash "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/install-instructions.sh" "${INSTRUCTION_ARGS[@]}"
+  bash "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/install-instructions.sh" "${INSTRUCTION_ARGS[@]}" || INSTRUCTIONS_RC=$?
+  # In --check mode, carry on to the skill audit and fail at the end.
+  if [ "$INSTRUCTIONS_RC" -ne 0 ] && ! $CHECK; then exit "$INSTRUCTIONS_RC"; fi
+  echo
 fi
 
 # ---- Discover skills ----------------------------------------------------------
@@ -109,16 +113,39 @@ REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 # ---- Ensure APM dependencies are fetched -------------------------------------
 
-if ! $CHECK && [ -f "$REPO_ROOT/apm.yml" ] && command -v apm &>/dev/null; then
-  if [ ! -d "$REPO_ROOT/.agents/skills" ] || [ ! -d "$REPO_ROOT/apm_modules" ]; then
-    if $DRY_RUN; then
-      echo "would run apm install to fetch dependencies (skipped in dry run)"
-      echo
-    else
-      echo "Running apm install to fetch dependencies..."
-      (cd "$REPO_ROOT" && apm install)
-      echo
+# Skill names declared in apm.yml: the last path segment of each dependency.
+DECLARED_APM=()
+if [ -f "$REPO_ROOT/apm.yml" ]; then
+  while IFS= read -r s; do DECLARED_APM+=("$s"); done < <(
+    sed -n 's|^[[:space:]]*-[[:space:]]*\([^[:space:]#]*/[^[:space:]#]*\).*|\1|p' "$REPO_ROOT/apm.yml" \
+      | awk -F/ '{print $NF}'
+  )
+fi
+
+# Declared skills that have not been fetched into .agents/skills/ yet.
+unfetched_apm() {
+  local s
+  for s in ${DECLARED_APM[@]+"${DECLARED_APM[@]}"}; do
+    [ -f "$REPO_ROOT/.agents/skills/$s/SKILL.md" ] || printf '%s\n' "$s"
+  done
+}
+
+UNFETCHED="$(unfetched_apm | tr '\n' ' ')"
+if ! $CHECK && [ -n "$UNFETCHED" ]; then
+  if ! command -v apm &>/dev/null; then
+    # Naming skills explicitly (e.g. an own skill) does not need APM.
+    if [ ${#SKILLS_TO_INSTALL[@]} -eq 0 ]; then
+      printf '%s\n' "APM is not on PATH, so the third-party skills in apm.yml cannot be fetched." \
+        "Install it (brew install microsoft/apm/apm), then rerun." >&2
+      exit 1
     fi
+  elif $DRY_RUN; then
+    echo "would run apm install to fetch: $UNFETCHED(skipped in dry run)"
+    echo
+  else
+    echo "Running apm install to fetch: $UNFETCHED"
+    (cd "$REPO_ROOT" && apm install)
+    echo
   fi
 fi
 
@@ -145,13 +172,18 @@ while IFS= read -r s; do APM_SKILLS+=("$s"); done < <(
   fi
 )
 
-if $CHECK && [ -f "$REPO_ROOT/apm.yml" ] && [ ${#APM_SKILLS[@]} -eq 0 ]; then
-  printf '%s\n' 'Check incomplete: no APM skill sources found in .agents/skills. Run "apm install" in this repo, then rerun --check.' >&2
-  exit 1
+if $CHECK && [ ${#SKILLS_TO_INSTALL[@]} -eq 0 ] && [ -f "$REPO_ROOT/apm.yml" ]; then
+  if [ ${#APM_SKILLS[@]} -eq 0 ]; then
+    printf '%s\n' 'Check incomplete: no APM skill sources found in .agents/skills. Run "apm install" in this repo, then rerun --check.' >&2
+    exit 1
+  elif [ -n "$UNFETCHED" ]; then
+    printf '%s\n' "Check incomplete: declared in apm.yml but not fetched: $UNFETCHED" 'Run "apm install" in this repo, then rerun --check.' >&2
+    exit 1
+  fi
 fi
 
 # Combined list (own + APM-managed) — used only for explicit-name resolution.
-ALL_SKILLS=("${REPO_SKILLS[@]}" "${APM_SKILLS[@]}")
+ALL_SKILLS=(${REPO_SKILLS[@]+"${REPO_SKILLS[@]}"} ${APM_SKILLS[@]+"${APM_SKILLS[@]}"})
 
 if [ ${#ALL_SKILLS[@]} -eq 0 ]; then
   echo "no skills found under $REPO_ROOT (looking for */SKILL.md)" >&2
@@ -163,7 +195,11 @@ fi
 # not by symlinking — this avoids double-loading them alongside the plugin.
 # Pass skill names explicitly to install specific skills (own or APM).
 if [ ${#SKILLS_TO_INSTALL[@]} -eq 0 ]; then
-  SKILLS_TO_INSTALL=("${APM_SKILLS[@]}")
+  SKILLS_TO_INSTALL=(${APM_SKILLS[@]+"${APM_SKILLS[@]}"})
+fi
+if [ ${#SKILLS_TO_INSTALL[@]} -eq 0 ]; then
+  echo "no third-party skills to install (apm.yml declares none)" >&2
+  exit 1
 fi
 
 # ---- Check (read-only) --------------------------------------------------------
@@ -209,7 +245,7 @@ if $CHECK; then
       fi
     done
     # Own skills ship in the personal-skills plugin; a copy here loads them twice.
-    for skill in "${REPO_SKILLS[@]}"; do
+    for skill in ${REPO_SKILLS[@]+"${REPO_SKILLS[@]}"}; do
       case " ${SKILLS_TO_INSTALL[*]} " in *" $skill "*) continue ;; esac
       if [ -e "$TARGET/$skill" ] || [ -L "$TARGET/$skill" ]; then
         echo "  DUPLICATE  $skill (also ships in the personal-skills plugin)"; problems=$((problems+1))
@@ -221,20 +257,23 @@ if $CHECK; then
       case "$name" in
         *.backup.*|*.bak-*) echo "  BACKUP     $name (left by an earlier install; delete when happy)" ;;
       esac
-      case " ${SKILLS_TO_INSTALL[*]} ${REPO_SKILLS[*]} " in *" $name "*) continue ;; esac
+      case " ${SKILLS_TO_INSTALL[*]} ${REPO_SKILLS[*]-} " in *" $name "*) continue ;; esac
       if [ -L "$entry" ] && [ ! -e "$entry" ]; then
         echo "  BROKEN     $name -> $(readlink "$entry") (not from this repo)"; problems=$((problems+1))
       fi
     done
     echo
   done
+  if [ "$INSTRUCTIONS_RC" -ne 0 ]; then
+    echo "Global instruction links need fixing: ./install-instructions.sh"
+  fi
   if [ "$problems" -eq 0 ]; then
-    echo "All good."
+    echo "Skills: all good."
   else
     echo "$problems problem(s). Fix: ./install.sh --claude --copilot (and remove any COPY/DUPLICATE dirs)."
   fi
   echo 'Plugins are not checked here: run "claude plugin list" and "copilot plugin list".'
-  [ "$problems" -eq 0 ]
+  [ "$problems" -eq 0 ] && [ "$INSTRUCTIONS_RC" -eq 0 ]
   exit $?
 fi
 

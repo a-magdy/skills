@@ -53,3 +53,21 @@ setup() {
   run bash "$FIXTURE/install.sh" --check --target "$TARGET" example
   [ "$status" -eq 0 ]
 }
+
+@test "reports declared APM skills that were never fetched" {
+  printf 'dependencies:\n  apm:\n  - acme/skills/skills/fetched\n  - acme/skills/skills/absent\n' > "$FIXTURE/apm.yml"
+  mkdir -p "$FIXTURE/.agents/skills/fetched"
+  printf '# Fetched\n' > "$FIXTURE/.agents/skills/fetched/SKILL.md"
+  run bash "$FIXTURE/install.sh" --check --target "$TARGET"
+  [ "$status" -eq 1 ]
+  [[ "$output" == *"not fetched: absent"* ]]
+}
+
+@test "fails clearly when APM is missing and skills are unfetched" {
+  printf 'dependencies:\n  apm:\n  - acme/skills/skills/absent\n' > "$FIXTURE/apm.yml"
+  PATH="/usr/bin:/bin" run /bin/bash "$FIXTURE/install.sh" --target "$TARGET"
+  [ "$status" -eq 1 ]
+  [[ "$output" == *"APM is not on PATH"* ]]
+  PATH="/usr/bin:/bin" run /bin/bash "$FIXTURE/install.sh" --dry-run --target "$TARGET" example
+  [ "$status" -eq 0 ]
+}
