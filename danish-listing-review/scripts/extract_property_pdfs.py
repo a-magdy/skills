@@ -50,8 +50,8 @@ if MISSING:
     sys.stderr.write(
         "Missing dependencies: {}\n\n"
         "Install into a throwaway venv so nothing global is touched:\n"
-        "    python3 -m venv /tmp/propvenv && /tmp/propvenv/bin/pip install {}\n"
-        "    /tmp/propvenv/bin/python {} <args>\n".format(
+        "    venv=\"$(mktemp -d)/propvenv\" && python3 -m venv \"$venv\" && \"$venv/bin/pip\" install {}\n"
+        "    \"$venv/bin/python\" {} <args>\n".format(
             ", ".join(MISSING), " ".join(MISSING), Path(__file__).name
         )
     )

@@ -67,7 +67,8 @@ while [[ $# -gt 0 ]]; do
     --symlink) MODE="symlink"; shift ;;
     --claude)  TARGET_DIRS+=("$CLAUDE_TARGET");  TARGET_APM_SRCS+=(".agents/skills"); PLUGIN_ARGS+=("--claude");  shift ;;
     --copilot) TARGET_DIRS+=("$COPILOT_TARGET"); TARGET_APM_SRCS+=(".agents/skills"); PLUGIN_ARGS+=("--copilot"); shift ;;
-    --target)  TARGET_DIRS+=("$2");              TARGET_APM_SRCS+=(".agents/skills"); shift 2 ;;
+    --target)  [ $# -ge 2 ] || { echo "--target needs a path" >&2; exit 2; }
+               TARGET_DIRS+=("$2");              TARGET_APM_SRCS+=(".agents/skills"); shift 2 ;;
     --dry-run) DRY_RUN=true; shift ;;
     --check)   CHECK=true; shift ;;
     --with-plugins) WITH_PLUGINS=true; shift ;;

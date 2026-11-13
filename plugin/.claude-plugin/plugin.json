@@ -1,7 +1,7 @@
 {
   "name": "personal-skills",
-  "description": "Session-lifecycle skills (status, carry-forward, resume, decision-log) and site-design workflows, with SessionStart/SessionEnd hooks.",
-  "version": "1.0.0",
+  "description": "Session-lifecycle skills (status, carry-forward, resume, decision-log), site-design workflows, and Danish property due diligence, with SessionStart/SessionEnd hooks.",
+  "version": "1.1.0",
   "author": {
     "name": "Ahmed Magdy"
   },

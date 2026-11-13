@@ -1,0 +1,12 @@
+[
+  {"query": "wrap this session and leave me a handoff", "should_trigger": true},
+  {"query": "create a carry-forward for tomorrow", "should_trigger": true},
+  {"query": "we're parking this, leave me a doc to pick it up later", "should_trigger": true},
+  {"query": "write a session summary for next time", "should_trigger": true},
+  {"query": "summarize this session so far", "should_trigger": false},
+  {"query": "is it safe to close?", "should_trigger": false},
+  {"query": "wrap up my working tree into commits", "should_trigger": false},
+  {"query": "log this decision: we chose SQLite over Postgres", "should_trigger": false},
+  {"query": "resume from carry-forward", "should_trigger": false},
+  {"query": "summarize this README", "should_trigger": false}
+]

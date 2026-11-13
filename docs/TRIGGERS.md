@@ -20,12 +20,12 @@ In Copilot CLI, type the slash command yourself; asking the model to "use the i-
 | Skill | Example prompts |
 |---|---|
 | `session-status` | "summarize this session so far" · "is it safe to close?" · "what am I in the middle of?" |
-| `session-carry-forward` | "wrap this session" · "create a handoff" · "carry-forward" · "session summary for next time" |
+| `session-carry-forward` | "wrap this session" · "create a handoff" · "carry-forward" · "session summary for next time" · "leave me a doc to pick this up later" |
 | `session-resume` | paste a carry-forward seed prompt · "resume from carry-forward" · "pick up from last session" |
 | `decision-log` | "log this decision" · "add to decision log" · "ADR for X" · "remember that we decided Y over Z" |
 | `scratch-workspace-routing` | session started in a scratch/temp/sandbox/home dir **and** the prompt points at a repo: "keep working on widget-service" · "resume session 3f2a…" · "continue where we left off" · "in my acme repo, fix the failing test" |
 
-The plugin's SessionStart hook ([`plugin/hooks/session-start`](../plugin/hooks/session-start)) backs `scratch-workspace-routing` up: when a session starts outside any git repo it injects a one-paragraph note pointing at the skill, so routing does not depend on the agent noticing its working directory on its own.
+The plugin's SessionStart hook ([`plugin/hooks/session-start`](../plugin/hooks/session-start)) backs `scratch-workspace-routing` up: when a session starts outside any git repo it injects a one-paragraph note pointing at the skill, so routing does not depend on the agent noticing its working directory on its own. Inside a repo, the same hook notes the newest carry-forward (by filename, if it is under 14 days old) so the agent can mention it; `session-resume` still runs only when you ask. The hook fires on startup and resume, not after `/clear` or compaction.
 
 ## Other own skills (via plugin)
 

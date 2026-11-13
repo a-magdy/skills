@@ -1,5 +1,5 @@
 name: skills
-version: 1.0.0
+version: 1.1.0
 description: APM project for skills
 author: Ahmed Magdy
 targets:
@@ -18,11 +18,13 @@ dependencies:
   - humanlayer/skills/plugins/improve-claude-md
   - github/awesome-copilot/plugins/awesome-copilot
   mcp:
-  # Example self-defined stdio MCP server (public Microsoft sample; no secrets).
+  # awesome-copilot MCP server (public Microsoft sample; no secrets). Pinned by
+  # digest so a re-tagged image cannot change what runs; this was `:latest` on
+  # 2026-11-13. To update: docker buildx imagetools inspect <image>:latest
   - name: awesome-copilot
     registry: false
     transport: stdio
     command: docker
-    args: ["run", "-i", "--rm", "ghcr.io/microsoft/mcp-dotnet-samples/awesome-copilot:latest"]
+    args: ["run", "-i", "--rm", "ghcr.io/microsoft/mcp-dotnet-samples/awesome-copilot@sha256:a5d2f9b558c8055d8fd3590fffe7db3fbae56fa985fe3ce36854ade841d8b44e"]
 includes: auto
 scripts: {}

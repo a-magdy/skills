@@ -1,6 +1,6 @@
 ---
 name: session-status
-description: 'Mid-session health-and-status report for a long Claude Code session. Three flavors triggered by phrasing — running summary ("summarize so far"), safe-to-close health check ("is it safe to close"), and current-focus view ("what am I in the middle of"). Non-destructive: prints a synthesis, never writes a file. Use this when the user wants a snapshot of state without producing a handoff document.'
+description: 'Mid-session health-and-status report for a long Claude Code session. Three flavors triggered by phrasing — running summary ("summarize so far"), safe-to-close health check ("is it safe to close"), and current-focus view ("what am I in the middle of"). Non-destructive: prints a synthesis, never writes a file. Use this when the user wants a snapshot of state without producing a handoff document. Not for writing a handoff file (use session-carry-forward) or resuming from one (use session-resume).'
 ---
 
 # session-status
@@ -25,8 +25,8 @@ This skill never writes a file. If the user wants a handoff doc, invoke `session
    - `git log --oneline origin/<branch>..HEAD` for unpushed commits
    - `git log --oneline -10` for recent context
    - `jobs -l` for background shell jobs in the current session
-   - Recent Bash invocations that ran `run_in_background: true` and may still be live (check `/private/tmp/claude-*/tasks/` if relevant)
-   - The task list (TaskList) for in-progress / pending items
+   - Background commands or subagents this session started that may still be live (use whatever this CLI offers for listing them)
+   - The task/todo list, if this CLI has one, for in-progress / pending items
    - `gh run list --limit 3` if a `gh` remote is configured
 2. **Pick the flavor(s)** based on the user's phrasing.
 3. **Report.** Markdown reply, no file output.
@@ -49,7 +49,7 @@ Tight health check. Return a yes/no on the first line, then the specific items t
 
 Check these, in order:
 
-- Background jobs still running? (`jobs -l`, any in-flight `run_in_background` Bash agents, any active subagents from `Agent` tool)
+- Background jobs still running? (`jobs -l`, any in-flight background commands, any active subagents)
 - Working tree dirty? (modified, untracked, staged)
 - Unpushed commits on the current branch?
 - In-flight CI? (`gh run list --status in_progress`)
@@ -67,7 +67,7 @@ Smaller scope than the summary. Focused on *what's happening right now*.
 
 Sections:
 
-- **Current task** — the in-progress TaskList item, or the last commit subject, or the open file being edited.
+- **Current task** — the in-progress task-list item, or the last commit subject, or the open file being edited.
 - **Last decision** — most recent decision made in the session, if any.
 - **Open question to me** — if you asked the user something they haven't answered yet, surface it.
 - **Next intended action** — one line, what the user would do next if they continued.

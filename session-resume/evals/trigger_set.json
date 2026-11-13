@@ -1,0 +1,12 @@
+[
+  {"query": "resume from carry-forward", "should_trigger": true},
+  {"query": "pick up from last session", "should_trigger": true},
+  {"query": "This is a resumption of an earlier session. Read the carry-forward at carry-forwards/2026-01-12-retry-backoff.md", "should_trigger": true},
+  {"query": "continue from carry-forwards/2026-01-12-retry-backoff.md", "should_trigger": true},
+  {"query": "create a handoff", "should_trigger": false},
+  {"query": "what am I in the middle of?", "should_trigger": false},
+  {"query": "resume the download that failed", "should_trigger": false},
+  {"query": "fix the failing parser test", "should_trigger": false},
+  {"query": "git pull and rebase my branch", "should_trigger": false},
+  {"query": "where are we?", "should_trigger": false}
+]

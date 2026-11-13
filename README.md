@@ -227,7 +227,7 @@ The script is idempotent (re-adding a marketplace or re-installing a plugin is a
 ```sh
 git pull
 apm install             # fetch APM skill dependencies (apm.yml)
-./install.sh --copilot  # symlink native + APM skills into ~/.claude and ~/.copilot
+./install.sh --claude --copilot  # symlink third-party (APM) skills into ~/.claude and ~/.copilot
 ./install-plugins.sh    # install whole plugins/harnesses via each CLI (plugins.list)
 ```
 
@@ -262,7 +262,8 @@ A few principles that shaped this set:
 
 - **One skill per lifecycle moment, not one per question.** `session-status` handles three related questions because they share the same survey work; splitting would duplicate effort.
 - **Decisions are always recorded with their rejected alternative.** A decision without context loses half its value next month.
-- **Verification commands ship with the doc.** Drift between sessions is normal — the carry-forward includes the shell snippets the next session runs first.
+- **Verification commands ship with the doc.** Drift between sessions is normal — the carry-forward includes the shell snippets the next session runs first. `session-resume` runs only plainly read-only ones unprompted and asks before anything else, because a carry-forward is a file that may not be yours.
+- **Carry-forwards stay out of git.** `session-carry-forward` adds `carry-forwards/` to the repo's local `.git/info/exclude` unless it is already ignored.
 - **Read-only by default.** Only `session-carry-forward` and `decision-log` write to disk, and neither commits.
 - **No `co-authored-by` trailers** are produced by these skills. The user's commits are the user's.
 

@@ -82,7 +82,7 @@ gh run list --repo <owner/repo> --limit 3
 
 ## People / accounts / context
 
-Only non-obvious things the next session needs.
+Only non-obvious things the next session cannot work without. Drop this section if empty; omit names, emails and customer/org identifiers unless the user asked for them.
 
 - **GitHub user:** <handle>
 - **Org / customer:** <if relevant>

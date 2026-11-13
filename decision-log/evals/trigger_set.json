@@ -1,0 +1,12 @@
+[
+  {"query": "log this decision: Redis over Memcached for the cache", "should_trigger": true},
+  {"query": "add to the decision log that we dropped the GraphQL layer", "should_trigger": true},
+  {"query": "write an ADR for moving to a monorepo", "should_trigger": true},
+  {"query": "remember that we decided to use pnpm over npm", "should_trigger": true},
+  {"query": "which is better here, Redis or Memcached?", "should_trigger": false},
+  {"query": "wrap this session", "should_trigger": false},
+  {"query": "show me the application logs", "should_trigger": false},
+  {"query": "add logging to the retry loop", "should_trigger": false},
+  {"query": "summarize the decisions so far", "should_trigger": false},
+  {"query": "commit this", "should_trigger": false}
+]

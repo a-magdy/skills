@@ -11,3 +11,6 @@ apm_modules/
 
 # Local Copilot plugin configuration
 .github/copilot/settings.local.json
+
+# Session handoff docs (real session state; never commit)
+carry-forwards/

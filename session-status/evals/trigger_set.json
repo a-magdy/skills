@@ -1,0 +1,12 @@
+[
+  {"query": "summarize this session so far", "should_trigger": true},
+  {"query": "is it safe to close this session?", "should_trigger": true},
+  {"query": "what am I in the middle of?", "should_trigger": true},
+  {"query": "anything still in flight?", "should_trigger": true},
+  {"query": "wrap this session", "should_trigger": false},
+  {"query": "create a handoff doc", "should_trigger": false},
+  {"query": "resume from carry-forward", "should_trigger": false},
+  {"query": "what's the status of the Kubernetes pods?", "should_trigger": false},
+  {"query": "summarize this pull request", "should_trigger": false},
+  {"query": "commit my changes", "should_trigger": false}
+]

@@ -25,6 +25,8 @@ skills/
 ├─ cinematic-static-site/SKILL.md
 ├─ multi-variant-site-design/SKILL.md
 ├─ staged-commit/SKILL.md
+├─ scratch-workspace-routing/SKILL.md
+├─ danish-listing-review/           ← SKILL.md + references/, scripts/, assets/, ROADMAP.md
 ├─ session-carry-forward/
 │   ├─ SKILL.md
 │   └─ references/template.md      ← the carry-forward doc template
@@ -33,6 +35,7 @@ skills/
 ├─ plugin/                          ← the `personal-skills` plugin (skills symlinks + hooks + manifests)
 ├─ VERSION                          ← single source of truth for the version (see sync-version.sh)
 ├─ scripts/sync-version.sh          ← stamps VERSION into every manifest
+├─ scripts/validate-skills.sh       ← consistency checks (symlinks, frontmatter, docs, hook parity, privacy); CI runs it
 ├─ docs/TRIGGERS.md                 ← what makes each skill fire (keep in sync with descriptions)
 ├─ <skill>/evals/                   ← optional: trigger_set.json + evals.json (see Testing and evals)
 ├─ carry-forwards/                  ← session handoff docs (output of session-carry-forward)
@@ -65,7 +68,7 @@ bash install-instructions.sh --check  # audit global instruction links only
 `install-plugins.sh` is separate and idempotent: it defaults to both CLIs, skips any target whose CLI is not on `PATH`, and is safe to re-run. Full machine bootstrap order:
 
 ```sh
-git pull && apm install && ./install.sh --copilot && ./install-plugins.sh
+git pull && apm install && ./install.sh --claude --copilot && ./install-plugins.sh
 ```
 
 Global preferences are a separate, opt-in install, not plugin content. `install-instructions.sh`
@@ -97,7 +100,7 @@ When adding a new **own** skill (ships via the `personal-skills` plugin, so it r
 2. Symlink it into the plugin so both CLIs pick it up:
    `ln -s ../../<skill-name> plugin/skills/<skill-name>`. Do **not** add own skills to `apm.yml` — that's for third-party skills only.
 3. Add a one-line entry (with its Invocation column) to the appropriate skills table in `README.md`, and its triggers to `docs/TRIGGERS.md`.
-4. Commit. CI (`.github/workflows/validate.yml`) checks every skill dir has a `SKILL.md`, lints the manifests, and runs `sync-version.sh --check`.
+4. Run `./scripts/validate-skills.sh`, then commit. CI (`.github/workflows/validate.yml`) lints the manifests, runs `sync-version.sh --check`, and runs the same `validate-skills.sh`: every own skill is symlinked into `plugin/skills/`, `name:` equals the folder, the description is at most 1024 characters, the skill is listed in `README.md` and `docs/TRIGGERS.md`, the two hook configs are identical, and no tracked file holds a home path.
 5. Test by triggering it with one of its stated trigger phrases in both CLIs, and run `./install.sh --check`.
 
 To test an own skill live while editing it, symlink just that one skill (`./install.sh <skill-name> --claude`), and remove the link afterwards: leaving it alongside the plugin loads the skill twice (`--check` reports it as DUPLICATE).
@@ -114,7 +117,7 @@ The `skill-creator` skill (managed via APM) can run evals against a skill. Conve
 - `<skill>/evals/trigger_set.json` — `[{ "query": "...", "should_trigger": true|false }]`, roughly half near-misses. Measures whether `description` fires correctly.
 - `<skill>/evals/evals.json` — `{ skill_name, evals: [{ id, prompt, expected_output, expectations[] }] }`. Measures whether the skill does the right thing.
 
-`staged-commit` has both; `danish-listing-review` has `evals.json`. Manual-only skills should never trigger from natural language, so their trigger sets are all `false` plus a slash-invocation check.
+`staged-commit` has both; `danish-listing-review` has `evals.json`; `scratch-workspace-routing`, `decision-log` and the three `session-*` skills have `trigger_set.json`. Manual-only skills should never trigger from natural language, so their trigger sets are all `false` plus a slash-invocation check.
 
 ## Keeping Claude and Copilot in sync
 
@@ -133,7 +136,7 @@ This repo is public. Never commit personal or environment-specific data:
 - No absolute home paths (`/Users/<name>`, `/home/<name>`), usernames, emails, hostnames, or IPs. Use repo-relative paths and generic placeholders.
 - No employer/client/org names or internal project names in skills, examples, or docs. Examples must be fictional (e.g. `acme/widget-service`).
 - No secrets, tokens, API keys, or `.env` values — ever.
-- `carry-forwards/` stays **local and untracked** (it captures real session state); do not commit it.
+- `carry-forwards/` stays **local and untracked** (it captures real session state); do not commit it. It is in `.gitignore` here, and `session-carry-forward` adds it to `.git/info/exclude` in other repos.
 - Before committing, scan the diff for the above. The `staged-commit` skill does this automatically.
 
 ## Conventions

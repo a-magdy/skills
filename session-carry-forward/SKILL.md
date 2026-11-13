@@ -1,6 +1,6 @@
 ---
 name: session-carry-forward
-description: Produce a structured handoff document at the end of a long Claude Code session so the next session (or a teammate) can pick up without re-litigating decisions or re-running discovery. Use when the user says things like "wrap this session", "create a handoff", "carry-forward", "session summary for next time", "/carry-forward", or asks for a doc that will seed a future session with everything that happened, was decided, was explored, was rejected, plus what's left to do.
+description: Produce a structured handoff document at the end of a long Claude Code session so the next session (or a teammate) can pick up without re-litigating decisions or re-running discovery. Use when the user says things like "wrap this session", "create a handoff", "carry-forward", "session summary for next time", "leave me a doc to pick this up later", or asks for a doc that will seed a future session with everything that happened, was decided, was explored, was rejected, plus what's left to do. Not for a mid-session snapshot with no file (use session-status), recording one decision in the project log (use decision-log), or committing work (use staged-commit).
 ---
 
 # session-carry-forward
@@ -17,7 +17,6 @@ The goal is **not** a transcript. A future reader who has never seen this sessio
 
 User-facing triggers:
 
-- "/carry-forward" (slash-command-style)
 - "wrap this session", "wrap up", "create a handoff"
 - "session carry-forward" / "carry forward this session"
 - "write a session summary for next time"
@@ -37,10 +36,12 @@ Decision tree for picking the path:
 
 Do not check in or commit the file yourself unless the user explicitly asks. Mention the path you wrote to.
 
+**Keep it out of version control.** A carry-forward captures real session state (accounts, org names, open problems), and the calling repo may be public. After writing inside a repo, run `git check-ignore -q <path>`; if the file is not ignored, append `carry-forwards/` to `<repo-root>/.git/info/exclude` (a local, untracked ignore file, so nothing in the repo changes) and tell the user you did. If the user wants handoffs tracked for a teammate, they can say so and you skip this step.
+
 ## Procedure
 
 1. **Confirm scope and audience.** Ask if the next reader is the same user (default) or a teammate, since the level of context-setting differs. If user doesn't volunteer, assume same-user and skip the question.
-2. **Survey the current state.** Use `git log`, `git status`, `git branch`, `gh run list` (if applicable), and TaskList to inventory what landed, what's open, and what's in flight. Do not include raw command output in the doc — synthesize.
+2. **Survey the current state.** Use `git log`, `git status`, `git branch`, `gh run list` (if applicable), and the task/todo list (if this CLI has one) to inventory what landed, what's open, and what's in flight. Do not include raw command output in the doc — synthesize.
 3. **Walk the session backward.** Pick out: decisions made, paths considered-but-rejected, paths attempted-and-abandoned, findings (technical and procedural), open follow-ups.
 4. **Fill the template at [`references/template.md`](references/template.md) in order.** Keep each section tight; if a section would be empty for this session, drop the heading rather than write "N/A".
 5. **Write the seed prompt last.** It is a literal paste-ready block, not a summary-of-the-doc. A future session pastes that block and gets re-oriented.
@@ -59,7 +60,7 @@ The template (see `references/template.md`) enforces this set of sections. The m
 7. **Files & paths touched** — short orientation list, not an exhaustive diff. Group by purpose.
 8. **External-systems status** — anything live that could shift between sessions: CI runs, deployed images, open PRs, scheduled jobs, secrets that need rotation.
 9. **Verification commands** — concrete shell snippets the next session runs to confirm the state described above still holds.
-10. **People / accounts / context** — only what's not obvious from the repo (GitHub usernames, customer/org, role of the user).
+10. **People / accounts / context** — only what's not obvious from the repo and what the next session cannot work without. Leave out names, emails, and customer/org identifiers unless the user asked for them to be recorded.
 11. **Seed prompt** — paste-ready block for the next session.
 
 ## What NOT to include

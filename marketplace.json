@@ -8,7 +8,7 @@
     {
       "name": "personal-skills",
       "description": "Session-lifecycle, site-design, and Danish property due-diligence skills, with SessionStart/SessionEnd hooks that surface carry-forwards and remind to capture state.",
-      "version": "1.0.0",
+      "version": "1.1.0",
       "source": "./plugin",
       "author": {
         "name": "Ahmed Magdy"

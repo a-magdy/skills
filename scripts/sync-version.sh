@@ -19,7 +19,11 @@ CHECK=false
 case "${1:-}" in
   --check) CHECK=true ;;
   "") ;;
-  *) printf '%s\n' "$1" > VERSION ;;  # explicit new version
+  *)  # explicit new version: must look like semver, so a mistyped flag cannot land in VERSION
+    if ! printf '%s' "$1" | grep -qE '^[0-9]+\.[0-9]+\.[0-9]+([-+][0-9A-Za-z.-]+)?$'; then
+      echo "not a version: '$1' (expected e.g. 1.2.0, or --check)" >&2; exit 2
+    fi
+    printf '%s\n' "$1" > VERSION ;;
 esac
 
 [ -f VERSION ] || { echo "no VERSION file at repo root" >&2; exit 1; }
@@ -76,8 +80,8 @@ PY
 # apm.yml: a top-level `version:` line.
 if [ -f apm.yml ]; then
   if $CHECK; then
-    grep -qE "^version:[[:space:]]*${VERSION}$" apm.yml || {
-      echo "VERSION drift:\n  apm.yml version != ${VERSION}" >&2; exit 1; }
+    grep -qxF "version: ${VERSION}" apm.yml || {
+      printf 'VERSION drift:\n  apm.yml version != %s\n' "${VERSION}" >&2; exit 1; }
   else
     # portable in-place edit (BSD/GNU sed)
     tmp="$(mktemp)"

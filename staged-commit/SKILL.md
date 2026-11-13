@@ -1,6 +1,6 @@
 ---
 name: staged-commit
-description: Commit working-tree changes in small, logically-grouped stages with clean, convention-following messages. Use when the user says "commit this", "commit for me", "commit in stages", "stage and commit", "break this into commits", "commit my changes", or otherwise asks to turn a dirty working tree into one or more commits. Groups related files into separate commits, writes imperative Conventional-Commits-style messages, and never mentions AI tools or personal information in the message.
+description: Commit working-tree changes in small, logically-grouped stages with clean, convention-following messages. Use when the user says "commit this", "commit for me", "commit in stages", "stage and commit", "break this into commits", "commit my changes", or otherwise asks to turn a dirty working tree into one or more commits. Groups related files into separate commits, writes imperative Conventional-Commits-style messages, and never mentions AI tools or personal information in the message. Not for pushing or opening a PR, and not for "wrap up the session" handoff docs (use session-carry-forward).
 ---
 
 # staged-commit
