@@ -1,6 +1,6 @@
 lockfile_version: '1'
-generated_at: '2026-09-29T19:36:58.017027+00:00'
-apm_version: 0.31.0
+generated_at: '2026-11-05T10:35:26.328439+00:00'
+apm_version: 0.35.0
 dependencies:
 - repo_url: anthropics/skills
   name: frontend-design
@@ -394,6 +394,16 @@ dependencies:
     .agents/skills/i-have-adhd/agents/gemini.toml: sha256:5108a6123beb9df24846e0dd3f902c652d18522dfbc56e5762032ea383041c62
     .agents/skills/i-have-adhd/agents/openai.yaml: sha256:2c51291283dcefdca43ca6b0c08172f225c7c26a9783ec444d6bdfa51ca96f8f
   content_hash: sha256:27e3b1d7339b6898419c6df77e1339bbd8362e5926e86bb991417c60af390b81
+- repo_url: github/awesome-copilot
+  name: awesome-copilot
+  host: github.com
+  resolved_commit: 96543145e9cb97711020b57b9d88f968062c4fc7
+  version: 1.1.0
+  virtual_path: plugins/awesome-copilot
+  is_virtual: true
+  package_type: agent_plugin
+  content_hash: sha256:d2b637e15ddb1957d3197e10447fafd9365b01a7fa97dd097347e1acb69fadfa
+  declared_license: MIT
 - repo_url: humanlayer/skills
   name: improve-claude-md
   host: github.com

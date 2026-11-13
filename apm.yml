@@ -16,6 +16,7 @@ dependencies:
   - mattpocock/skills/skills/productivity/grill-me
   - humanlayer/skills/plugins/show-me
   - humanlayer/skills/plugins/improve-claude-md
+  - github/awesome-copilot/plugins/awesome-copilot
   mcp:
   # Example self-defined stdio MCP server (public Microsoft sample; no secrets).
   - name: awesome-copilot
