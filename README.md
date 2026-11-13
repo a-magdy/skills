@@ -81,10 +81,10 @@ copilot plugin install personal-skills@personal-skills-marketplace
 
 # Claude Code
 claude plugin marketplace add a-magdy/skills
-claude plugin install personal-skills@personal-skills-marketplace -y
+claude plugin install personal-skills@personal-skills-marketplace
 ```
 
-To work on the skills, add the marketplace from your local checkout instead (`plugin marketplace add /path/to/skills`). Both CLIs copy the plugin into their own cache, so after editing run `plugin update personal-skills@personal-skills-marketplace` and restart the session.
+To work on the skills, add the marketplace from your local checkout instead (`plugin marketplace add /path/to/skills`) before running `install-plugins.sh`, which keeps a marketplace that is already registered. Copilot CLI then loads the plugin live from the checkout, so edits apply on the next session. Claude Code copies it into a per-version cache, so after editing run `claude plugin update personal-skills@personal-skills-marketplace` and restart.
 
 > **Own skills come from the plugin only.** Symlinking one into `~/.claude/skills` as well loads it twice; `./install.sh --check` reports that as `DUPLICATE`.
 
@@ -142,7 +142,7 @@ obra/superpowers-marketplace | superpowers-marketplace | superpowers | copilot,c
 ./install-plugins.sh --copilot  # only one CLI
 ```
 
-The script is safe to re-run, skips any CLI that is not on `PATH`, and exits non-zero only if an install command fails. Third-party plugins install at their marketplace's current version; neither CLI offers a way to pin one from this file, so review a plugin's hooks before adding it here.
+The script is safe to re-run, skips any CLI that is not on `PATH`, leaves already-registered marketplaces alone, and exits non-zero only if an install command fails. Third-party plugins install at their marketplace's current version; neither CLI offers a way to pin one from this file, so review a plugin's hooks before adding it here.
 
 ### Global instructions
 

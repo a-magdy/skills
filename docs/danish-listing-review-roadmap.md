@@ -1,6 +1,6 @@
-# Roadmap & known gaps
+# `danish-listing-review`: roadmap & known gaps
 
-Maintainer notes for this skill. **Deliberately not referenced from `SKILL.md`**, so it never
+Maintainer notes for the skill at [`plugin/skills/danish-listing-review/`](../plugin/skills/danish-listing-review/); file paths below are relative to that folder. Kept in `docs/` so it does not ship with the plugin. **Deliberately not referenced from `SKILL.md`**, so it never
 loads into context when the skill runs — a model doing a property analysis does not benefit
 from reading about the skill's own backlog, and telling it "the el-parser is unvalidated"
 mid-task just makes it hedge on cases that work fine.

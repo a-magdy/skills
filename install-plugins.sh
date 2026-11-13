@@ -53,6 +53,18 @@ run_soft() {
   "$@" || echo "  (already present or non-fatal — continuing)"
 }
 
+# Register a marketplace unless the CLI already knows one by that name. An
+# existing registration is left alone, so a marketplace added from a local
+# checkout (for working on the plugin) is not re-pointed at GitHub.
+add_marketplace() {
+  local cli="$1" repo="$2" name="$3"
+  if "$cli" plugin marketplace list 2>/dev/null | grep -qw -- "$name"; then
+    echo "  marketplace $name already registered in $cli — keeping it"
+    return 0
+  fi
+  run_soft "$cli" plugin marketplace add "$repo"
+}
+
 # Effective targets: explicit flags if given, otherwise both.
 if [ ${#ONLY_TARGETS[@]} -eq 0 ]; then
   WANTED_TARGETS=(copilot claude)
@@ -97,7 +109,7 @@ while IFS= read -r line || [ -n "$line" ]; do
     fi
     case "$t" in
       copilot)
-        run_soft copilot plugin marketplace add "$mp_repo"
+        add_marketplace copilot "$mp_repo" "$mp_name"
         if run copilot plugin install "${plugin}@${mp_name}"; then
           installed=$((installed+1))
         else
@@ -105,8 +117,8 @@ while IFS= read -r line || [ -n "$line" ]; do
         fi
         ;;
       claude)
-        run_soft claude plugin marketplace add "$mp_repo"
-        if run claude plugin install "${plugin}@${mp_name}" -y; then
+        add_marketplace claude "$mp_repo" "$mp_name"
+        if run claude plugin install "${plugin}@${mp_name}"; then
           installed=$((installed+1))
         else
           echo "  ERROR: install failed for $plugin on claude"; failed=$((failed+1))

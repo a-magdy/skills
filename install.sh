@@ -150,7 +150,7 @@ if $CHECK && [ -f "$REPO_ROOT/apm.yml" ] && [ ${#APM_SKILLS[@]} -eq 0 ]; then
   exit 1
 fi
 
-# Combined list (native + APM-managed) — used only for explicit-name resolution.
+# Combined list (own + APM-managed) — used only for explicit-name resolution.
 ALL_SKILLS=("${REPO_SKILLS[@]}" "${APM_SKILLS[@]}")
 
 if [ ${#ALL_SKILLS[@]} -eq 0 ]; then

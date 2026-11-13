@@ -1,6 +1,6 @@
 name: skills
 version: 1.2.0
-description: APM project for skills
+description: Third-party agent skills pinned for Claude Code and Copilot CLI
 author: Ahmed Magdy
 targets:
 - copilot

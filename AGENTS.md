@@ -35,7 +35,7 @@ skills/
 │   ├─ sync-docs.sh           ← regenerates the skill tables in README.md and docs/TRIGGERS.md
 │   └─ validate-skills.sh     ← consistency checks; CI runs it
 ├─ tests/*.bats               ← shell tests for installers, hooks and scripts
-├─ docs/TRIGGERS.md           ← example prompts per skill (own-skills table is generated)
+├─ docs/                      ← TRIGGERS.md (example prompts; own-skills table is generated), per-skill roadmaps
 ├─ carry-forwards/            ← local session handoff docs (gitignored)
 └─ .agents/skills/            ← APM-managed skills (generated, gitignored)
 ```
@@ -67,7 +67,7 @@ Add `disable-model-invocation: true` for skills that should only run on `/name`.
 
 Whenever you add, rename, remove or re-describe a skill in this repo, do steps 2 and 4 before reporting the work as done.
 
-Edits are never live in an installed plugin: both CLIs copy the plugin into their own cache (Claude Code keeps one copy per version under `~/.claude/plugins/cache/`). With the marketplace added from the **local checkout path**, run `plugin update personal-skills@personal-skills-marketplace` in each CLI after editing, bumping `VERSION` first if the CLI reports nothing to update, then restart the session. Added from **GitHub**, edits need push + `plugin update`. A plugin can also be installed but **disabled**; check `plugin list`.
+Whether edits are live depends on the CLI and on where the marketplace was added from. With the marketplace added from the **local checkout path**: Copilot CLI loads the plugin in place ("Live Plugins" in `copilot plugin list`), so edits apply on the next session; Claude Code copies it into a per-version cache under `~/.claude/plugins/cache/`, so run `claude plugin update personal-skills@personal-skills-marketplace` after editing (bump `VERSION` first if it reports nothing to update) and restart. Added from **GitHub**, both need push + `plugin update`. `install-plugins.sh` keeps an already-registered marketplace, so add the local path before running it. A plugin can also be installed but **disabled**; check `plugin list`.
 
 To try one own skill without the plugin, `./install.sh <skill-name> --claude` symlinks just that skill. Remove the link afterwards: alongside the plugin it loads twice (`--check` reports DUPLICATE).
 
@@ -117,7 +117,8 @@ Third-party plugins install at their marketplace's current version; there is no 
 
 ## Testing and evals
 
-- `bats tests/*.bats` — installers, hooks, `sync-version.sh`, `validate-skills.sh`. Tests run against temp dirs and a fake `HOME`; they never touch live config.
+- `bats tests/*.bats` — all three installers, hooks, `sync-version.sh`, `validate-skills.sh`. Tests run against temp dirs, a fake `HOME` and stub CLIs; they never touch live config or the network.
+- Maintainer notes about a skill (roadmaps, known gaps) go in `docs/`, not in the skill folder: everything under `plugin/skills/<name>/` ships to users.
 - `./scripts/validate-skills.sh` — layout, frontmatter, generated docs, hook parity, privacy.
 - `shellcheck -S warning` on every script; CI fails on warnings.
 
@@ -158,7 +159,8 @@ This repo is public. Never commit personal or environment-specific data:
 
 ## Gotchas & tooling notes
 
-- **`plugin marketplace add <repo>` returns non-zero if the marketplace is already registered.** Under `set -euo pipefail` this would abort `install-plugins.sh` on any re-run, which is why it wraps that step as non-fatal (`run_soft`). `plugin install` itself is idempotent.
+- **`plugin marketplace add <repo>` behaves differently per CLI when the name is already registered.** Copilot returns non-zero; Claude Code silently replaces the source (a local path becomes GitHub). `install-plugins.sh` therefore checks `plugin marketplace list` first and skips the add, and still wraps it as non-fatal (`run_soft`). `plugin install` itself is idempotent.
+- **`claude plugin install` takes no `-y` flag**; it is non-interactive already. `awesome-copilot` is a default marketplace in Copilot CLI and never needs adding.
 - **`install.sh` source vs destination are different dirs.** The repo-relative *source* is `.agents/skills` (APM-generated); the *destination* is `$HOME/.claude/skills` / `$HOME/.copilot/skills`.
 - **One `.agents/skills` source is enough.** `apm install`'s `.claude/skills` and `.agents/skills` outputs are byte-identical for plain `SKILL.md` skills, so `apm.yml` targets only `copilot`. Caveat: a skill shipping agent-specific files could differ per target — none here do.
 - **The lockfile is tied to the APM version that wrote it.** An older `apm` can report a "content hash mismatch" on a package whose pinned commit and per-file hashes are unchanged, because the bundle hash is computed differently. Check `apm --version` against `apm_version` in `apm.lock.yaml` before treating it as tampering, and do not run `apm install --update` just to get past it.
