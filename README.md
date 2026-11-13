@@ -56,15 +56,16 @@ The plugin also ships two hooks ([`plugin/hooks/`](./plugin/hooks/)), both read-
 
 ## Quick start
 
+Prerequisites: [APM](https://github.com/microsoft/apm) (`brew install microsoft/apm/apm`) and whichever of the `claude` and `copilot` CLIs you use, on `PATH`.
+
 ```sh
 git clone <this-repo-url> && cd skills
-apm install              # fetch third-party skills (apm.yml); requires APM
-./install.sh             # symlink them into ~/.claude/skills and ~/.copilot/skills
-./install-plugins.sh     # install whole plugins, including this repo's own skills
-./install.sh --check     # audit the result
+./install.sh --with-plugins --with-instructions   # everything, both CLIs
+./install.sh --with-instructions --check          # audit skills and instruction links
+claude plugin list && copilot plugin list         # audit plugins
 ```
 
-Requires [APM](https://github.com/microsoft/apm) for the third-party skills. Global preferences are opt-in; see [Global instructions](#global-instructions).
+That one command fetches the third-party skills with `apm install`, symlinks them, links the global preferences and installs the plugins. It is safe to re-run, and it is what a machine bootstrap should call. Each layer can also be installed on its own (below); drop `--with-instructions` if you do not want the [global preferences](#global-instructions).
 
 All three installers follow the same conventions: they default to both CLIs, accept `--claude` / `--copilot` to narrow that, support `--dry-run`, and back up anything they replace to a `.backup.*` sibling.
 
@@ -72,7 +73,7 @@ All three installers follow the same conventions: they default to both CLIs, acc
 
 ### Own skills: the plugin
 
-This repo is itself a plugin marketplace (see [`marketplace.json`](./marketplace.json)). `install-plugins.sh` installs the `personal-skills` plugin from GitHub; to do it by hand:
+This repo is itself a plugin marketplace (see [`marketplace.json`](./marketplace.json)). `install-plugins.sh` registers that marketplace from **this checkout**, so the plugin comes from the same clone as everything else, and runs `plugin update` for it on every run. To install from GitHub without a clone:
 
 ```sh
 # Copilot CLI
@@ -84,13 +85,13 @@ claude plugin marketplace add a-magdy/skills
 claude plugin install personal-skills@personal-skills-marketplace
 ```
 
-To work on the skills, add the marketplace from your local checkout instead (`plugin marketplace add /path/to/skills`) before running `install-plugins.sh`, which keeps a marketplace that is already registered. Copilot CLI then loads the plugin live from the checkout, so edits apply on the next session. Claude Code copies it into a per-version cache, so after editing run `claude plugin update personal-skills@personal-skills-marketplace` and restart.
+With the marketplace registered from the checkout, Copilot CLI loads the plugin live, so edits apply on the next session. Claude Code copies it into a per-version cache, so after editing or pulling run `./install-plugins.sh` (or `claude plugin update personal-skills@personal-skills-marketplace`) and restart. A marketplace that is already registered is kept as it is, including one added from GitHub; remove it first to switch.
 
 > **Own skills come from the plugin only.** Symlinking one into `~/.claude/skills` as well loads it twice; `./install.sh --check` reports that as `DUPLICATE`.
 
 ### Third-party skills (APM)
 
-Declared in [`apm.yml`](./apm.yml) and managed by [APM](https://github.com/microsoft/apm). `apm install` fetches them into `.agents/skills/` (gitignored); `install.sh` symlinks them from there, and runs `apm install` first if they have not been fetched.
+Declared in [`apm.yml`](./apm.yml) and managed by [APM](https://github.com/microsoft/apm). `apm install` fetches them into `.agents/skills/` (gitignored); `install.sh` symlinks them from there, and runs `apm install` first if any skill declared in `apm.yml` has not been fetched. Without APM on `PATH` it stops with an error instead of installing nothing.
 
 | Skill | Source | Invocation |
 |---|---|---|
@@ -189,7 +190,7 @@ Run `./install.sh --check` first. Per CLI and per skill it reports:
 | `DUPLICATE` | an own skill linked here that the plugin also ships |
 | `BACKUP` | a leftover `.backup.*` directory from an earlier install |
 
-If APM skill sources are absent, the check exits 1 with "Check incomplete" rather than reporting a healthy install: run `apm install`, then check again. Plugins are not covered; use `claude plugin list` and `copilot plugin list`.
+If APM skill sources are absent, or a skill declared in `apm.yml` has not been fetched, the check exits 1 with "Check incomplete" rather than reporting a healthy install: run `apm install`, then check again. Plugins are not covered; use `claude plugin list` and `copilot plugin list`.
 
 Known quirks:
 

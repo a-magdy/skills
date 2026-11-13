@@ -67,7 +67,7 @@ Add `disable-model-invocation: true` for skills that should only run on `/name`.
 
 Whenever you add, rename, remove or re-describe a skill in this repo, do steps 2 and 4 before reporting the work as done.
 
-Whether edits are live depends on the CLI and on where the marketplace was added from. With the marketplace added from the **local checkout path**: Copilot CLI loads the plugin in place ("Live Plugins" in `copilot plugin list`), so edits apply on the next session; Claude Code copies it into a per-version cache under `~/.claude/plugins/cache/`, so run `claude plugin update personal-skills@personal-skills-marketplace` after editing (bump `VERSION` first if it reports nothing to update) and restart. Added from **GitHub**, both need push + `plugin update`. `install-plugins.sh` keeps an already-registered marketplace, so add the local path before running it. A plugin can also be installed but **disabled**; check `plugin list`.
+Whether edits are live depends on the CLI and on where the marketplace was added from. With the marketplace added from the **local checkout path**: Copilot CLI loads the plugin in place ("Live Plugins" in `copilot plugin list`), so edits apply on the next session; Claude Code copies it into a per-version cache under `~/.claude/plugins/cache/`, so run `claude plugin update personal-skills@personal-skills-marketplace` after editing (bump `VERSION` first if it reports nothing to update) and restart. Added from **GitHub**, both need push + `plugin update`. `install-plugins.sh` registers this repo's own marketplace from the checkout it runs in and runs `plugin update` for it each time; it keeps a marketplace that is already registered, so one added from GitHub stays on GitHub until removed. A plugin can also be installed but **disabled**; check `plugin list`.
 
 To try one own skill without the plugin, `./install.sh <skill-name> --claude` symlinks just that skill. Remove the link afterwards: alongside the plugin it loads twice (`--check` reports DUPLICATE).
 
@@ -85,14 +85,14 @@ To try one own skill without the plugin, `./install.sh <skill-name> --claude` sy
 
 Shared conventions across the three installers: default to both CLIs, `--claude` / `--copilot` narrow that, `--dry-run` never writes, and anything replaced is moved to a `.backup.*` sibling. Keep new installer code consistent with these.
 
-- `install.sh` runs `apm install` first if dependencies have not been fetched. An existing symlink at the target is re-pointed; a real directory is moved to `<name>.backup.<YYYYMMDD-HHMMSS>`.
+- `install.sh` runs `apm install` first if any skill declared in `apm.yml` is missing from `.agents/skills/`, and exits 1 if APM is not on `PATH` (unless skills were named explicitly). An existing symlink at the target is re-pointed; a real directory is moved to `<name>.backup.<YYYYMMDD-HHMMSS>`.
 - `install-plugins.sh` skips any CLI not on `PATH` and is safe to re-run.
 - `install-instructions.sh` links `config/global/AGENTS.md` into `${CLAUDE_CONFIG_DIR:-$HOME/.claude}/CLAUDE.md` and `${COPILOT_HOME:-$HOME/.copilot}/copilot-instructions.md`. It refuses directories and leaves correct links untouched. `install.sh --with-instructions` forwards the CLI selection and `--check` / `--dry-run`; a custom skill `--target` does not redirect it. Never link the root `AGENTS.md` globally.
 
 Full machine bootstrap:
 
 ```sh
-git pull && apm install && ./install.sh && ./install-plugins.sh
+git pull && ./install.sh --with-plugins --with-instructions
 ```
 
 ## APM (third-party skills)
@@ -164,7 +164,6 @@ This repo is public. Never commit personal or environment-specific data:
 - **`install.sh` source vs destination are different dirs.** The repo-relative *source* is `.agents/skills` (APM-generated); the *destination* is `$HOME/.claude/skills` / `$HOME/.copilot/skills`.
 - **One `.agents/skills` source is enough.** `apm install`'s `.claude/skills` and `.agents/skills` outputs are byte-identical for plain `SKILL.md` skills, so `apm.yml` targets only `copilot`. Caveat: a skill shipping agent-specific files could differ per target — none here do.
 - **The lockfile is tied to the APM version that wrote it.** An older `apm` can report a "content hash mismatch" on a package whose pinned commit and per-file hashes are unchanged, because the bundle hash is computed differently. Check `apm --version` against `apm_version` in `apm.lock.yaml` before treating it as tampering, and do not run `apm install --update` just to get past it.
-- **`install.sh --check` only audits APM skills that have been fetched.** After a partial `apm install` it can read "All good" while skills in `apm.yml` are missing from `.agents/skills/`.
 - **`--check` statuses:** `WRONG` is a link into a different checkout, `INVALID` a link whose target has no `SKILL.md`, `COPY` a real directory that never picks up repo changes, `DUPLICATE` an own skill linked alongside the plugin.
 - **Copilot CLI ignores manual-only skills when the model looks them up.** Skills with `disable-model-invocation: true` work when the user types `/name` at the start of a prompt, but not via "use the X skill" (github/copilot-cli#4438, open as of 2026-09-29).
 - **VS Code reads `~/.claude/skills` as well as `~/.copilot/skills`.** A skill linked into both may be listed twice in VS Code; the CLIs are unaffected.
