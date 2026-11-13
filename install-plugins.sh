@@ -14,7 +14,9 @@
 #
 # A target whose CLI is not on PATH is skipped safely (with a warning); the
 # script still installs into whichever CLIs are present. Each plugin is also
-# constrained to the targets it declares in plugins.list. The exit code is
+# constrained to the targets it declares in plugins.list. This repo's own
+# marketplace is registered from this checkout (not GitHub) and its plugin is
+# updated on every run; third-party plugins are only installed. The exit code is
 # non-zero only if an actual install command failed.
 
 set -euo pipefail
@@ -65,6 +67,14 @@ add_marketplace() {
   run_soft "$cli" plugin marketplace add "$repo"
 }
 
+# This repo is itself a marketplace. Its own plugin is registered from this
+# checkout rather than from GitHub, so the plugin, the symlinked third-party
+# skills and the global instructions all come from the same clone.
+OWN_MARKETPLACE=""
+if [ -f "$REPO_ROOT/marketplace.json" ]; then
+  OWN_MARKETPLACE="$(sed -n 's/^[[:space:]]*"name"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' "$REPO_ROOT/marketplace.json" | head -n 1)"
+fi
+
 # Effective targets: explicit flags if given, otherwise both.
 if [ ${#ONLY_TARGETS[@]} -eq 0 ]; then
   WANTED_TARGETS=(copilot claude)
@@ -98,6 +108,11 @@ while IFS= read -r line || [ -n "$line" ]; do
   targets="$(trim "$targets")"; targets="${targets// /}"
 
   [ -z "$mp_repo" ] && continue
+  own=false
+  if [ -n "$OWN_MARKETPLACE" ] && [ "$mp_name" = "$OWN_MARKETPLACE" ]; then
+    own=true
+    mp_repo="$REPO_ROOT"
+  fi
   echo "== $plugin ($mp_repo) =="
 
   IFS=',' read -ra tlist <<< "$targets"
@@ -112,6 +127,8 @@ while IFS= read -r line || [ -n "$line" ]; do
         add_marketplace copilot "$mp_repo" "$mp_name"
         if run copilot plugin install "${plugin}@${mp_name}"; then
           installed=$((installed+1))
+          # Pick up changes pulled into this checkout since the last install.
+          if $own; then run_soft copilot plugin update "${plugin}@${mp_name}"; fi
         else
           echo "  ERROR: install failed for $plugin on copilot"; failed=$((failed+1))
         fi
@@ -120,6 +137,8 @@ while IFS= read -r line || [ -n "$line" ]; do
         add_marketplace claude "$mp_repo" "$mp_name"
         if run claude plugin install "${plugin}@${mp_name}"; then
           installed=$((installed+1))
+          # Pick up changes pulled into this checkout since the last install.
+          if $own; then run_soft claude plugin update "${plugin}@${mp_name}"; fi
         else
           echo "  ERROR: install failed for $plugin on claude"; failed=$((failed+1))
         fi

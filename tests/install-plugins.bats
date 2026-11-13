@@ -77,3 +77,15 @@ STUB
   [ "$status" -eq 1 ]
   [[ "$output" == *"install failed for tools on claude"* ]]
 }
+
+@test "registers this repo's own marketplace from the checkout and updates its plugin" {
+  printf '{\n  "name": "tools-marketplace"\n}\n' > "$FIXTURE/marketplace.json"
+  run bash "$FIXTURE/install-plugins.sh"
+  [ "$status" -eq 0 ]
+  grep -qx "claude plugin marketplace add $FIXTURE" "$LOG"
+  grep -qx "copilot plugin marketplace add $FIXTURE" "$LOG"
+  ! grep -q 'marketplace add acme/tools-marketplace' "$LOG"
+  grep -qx 'claude plugin update tools@tools-marketplace' "$LOG"
+  ! grep -q 'plugin update extras' "$LOG"
+  grep -qx 'copilot plugin marketplace add acme/extras' "$LOG"
+}
