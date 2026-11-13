@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Link shared global preferences into Claude Code and Copilot CLI.
 #
-# Usage: bash install-instructions.sh [--claude] [--copilot] [--dry-run | --check]
+# Usage: ./install-instructions.sh [--claude] [--copilot] [--dry-run | --check]
 # Defaults to both clients. Honors CLAUDE_CONFIG_DIR and COPILOT_HOME.
 # Existing files/links are preserved in unique sibling .backup.* paths.
 # Directories are never replaced. --check and --dry-run never write files.

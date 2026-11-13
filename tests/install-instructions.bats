@@ -85,14 +85,14 @@ setup() {
   [ ! -e "$HOME" ]
 }
 
-@test "skill-only installs remain opt-in and main installer defaults select Claude" {
+@test "skill-only installs remain opt-in and main installer defaults select both clients" {
   run bash "$REPO_ROOT/install.sh" --dry-run
   [ "$status" -eq 0 ]
   [[ "$output" != *"Would back up any existing file and link"* ]]
   run bash "$REPO_ROOT/install.sh" --dry-run --with-instructions
   [ "$status" -eq 0 ]
   [[ "$output" == *"$CLAUDE_CONFIG_DIR/CLAUDE.md"* ]]
-  [[ "$output" != *"$COPILOT_HOME/copilot-instructions.md"* ]]
+  [[ "$output" == *"$COPILOT_HOME/copilot-instructions.md"* ]]
   [ ! -e "$HOME" ]
 }
 

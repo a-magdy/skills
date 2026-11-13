@@ -23,13 +23,12 @@ jobs:
             python3 -c "import json,sys; json.load(open('$f')); print('OK  '+ '$f')"
           done
 
-      - name: Shell syntax check
+      - name: Shell lint (syntax + shellcheck)
         run: |
-          for s in install.sh install-instructions.sh install-plugins.sh scripts/*.sh \
-                   plugin/hooks/run-hook.sh plugin/hooks/session-start plugin/hooks/session-end; do
-            [ -f "$s" ] || continue
-            bash -n "$s" && echo "OK  $s"
-          done
+          scripts="install.sh install-instructions.sh install-plugins.sh scripts/*.sh
+                   plugin/hooks/run-hook.sh plugin/hooks/session-start plugin/hooks/session-end"
+          for s in $scripts; do bash -n "$s" && echo "OK  $s"; done
+          shellcheck -S warning $scripts
 
       - name: Install Bats
         run: sudo apt-get update && sudo apt-get install --no-install-recommends -y bats
@@ -40,5 +39,5 @@ jobs:
       - name: Version consistency
         run: ./scripts/sync-version.sh --check
 
-      - name: Skills, symlinks, docs, hook parity, privacy
+      - name: Skills, generated docs, hook parity, privacy
         run: ./scripts/validate-skills.sh

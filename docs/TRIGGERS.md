@@ -1,6 +1,6 @@
 # What triggers each skill
 
-Quick reference for which prompts load which skill. The source of truth is each skill's `description` in its `SKILL.md`, since that is all the agent sees when choosing. Update this file whenever a description changes.
+Quick reference for which prompts load which skill. The source of truth is each skill's `description` in its `SKILL.md`, since that is all the agent sees when choosing. The own-skills table is generated from those descriptions; the rest is hand-written.
 
 - **auto**: loads when your prompt matches the description. The phrases below are examples, not an exact-match list.
 - **`/name`**: `disable-model-invocation: true`. Never loads on its own; type the slash command at the start of your prompt.
@@ -15,26 +15,25 @@ Quick reference for which prompts load which skill. The source of truth is each 
 
 In Copilot CLI, type the slash command yourself; asking the model to "use the i-have-adhd skill" fails for these skills (github/copilot-cli#4438).
 
-## Session lifecycle (own, via plugin)
+## Own skills (via the `personal-skills` plugin)
 
+Generated from each skill's `description` by `./scripts/sync-docs.sh`; do not edit the table by hand.
+
+<!-- BEGIN own-skills -->
 | Skill | Example prompts |
 |---|---|
-| `session-status` | "summarize this session so far" · "is it safe to close?" · "what am I in the middle of?" |
+| `cinematic-static-site` | "cinematic" · "scroll-driven animations" · "parallax" · "WebGL background" · "smooth scrolling" · "awwwards-style" · "make my static site look amazing" · "chapter-based navigation" · "smooth transitions between sections" |
+| `danish-listing-review` | Use this whenever the user shares a Danish property address, a bolig listing URL, or property PDFs |
+| `decision-log` | "log this decision" · "add to decision log" · "record this" · "ADR for X" · "remember that we decided Y over Z" |
+| `multi-variant-site-design` | "design variants" · "show me a few directions for the site" · "gallery of designs" · "compare layouts" · "A/B site concepts" · "design sprint" · "I want to see alternatives first" |
+| `scratch-workspace-routing` | "continue where we left off" · "keep working on X" · "in my &lt;project&gt; repo" · "resume session &lt;id&gt;" |
 | `session-carry-forward` | "wrap this session" · "create a handoff" · "carry-forward" · "session summary for next time" · "leave me a doc to pick this up later" |
-| `session-resume` | paste a carry-forward seed prompt · "resume from carry-forward" · "pick up from last session" |
-| `decision-log` | "log this decision" · "add to decision log" · "ADR for X" · "remember that we decided Y over Z" |
-| `scratch-workspace-routing` | session started in a scratch/temp/sandbox/home dir **and** the prompt points at a repo: "keep working on widget-service" · "resume session 3f2a…" · "continue where we left off" · "in my acme repo, fix the failing test" |
+| `session-resume` | Use when a user pastes a carry-forward seed prompt, says "resume from carry-forward", says "pick up from last session", or otherwise starts a session by pointing at a prior carry-forward file |
+| `session-status` | "summarize so far" · "is it safe to close" · "what am I in the middle of" |
+| `staged-commit` | "commit this" · "commit for me" · "commit in stages" · "stage and commit" · "break this into commits" · "commit my changes" |
+<!-- END own-skills -->
 
 The plugin's SessionStart hook ([`plugin/hooks/session-start`](../plugin/hooks/session-start)) backs `scratch-workspace-routing` up: when a session starts outside any git repo it injects a one-paragraph note pointing at the skill, so routing does not depend on the agent noticing its working directory on its own. Inside a repo, the same hook notes the newest carry-forward (by filename, if it is under 14 days old) so the agent can mention it; `session-resume` still runs only when you ask. The hook fires on startup and resume, not after `/clear` or compaction.
-
-## Other own skills (via plugin)
-
-| Skill | Example prompts |
-|---|---|
-| `staged-commit` | "commit this" · "commit my changes" · "commit in stages" · "stage and commit" · "break this into commits" |
-| `danish-listing-review` | a Danish property address, bolig listing URL or property PDFs · "is this worth buying?" · "red flags?" · tilstandsrapport, salgsopstilling, energimærke, ejerudgift, boligkøb |
-| `cinematic-static-site` | "cinematic" · "scroll-driven animations" · "parallax" · "WebGL background" · "smooth scrolling" · "awwwards-style" · "make my static site look amazing" |
-| `multi-variant-site-design` | "design variants" · "show me a few directions for the site" · "gallery of designs" · "compare layouts" · "A/B site concepts" |
 
 ## Third-party (via APM, `install.sh`)
 

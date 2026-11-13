@@ -1,6 +1,6 @@
 ---
 name: session-carry-forward
-description: Produce a structured handoff document at the end of a long Claude Code session so the next session (or a teammate) can pick up without re-litigating decisions or re-running discovery. Use when the user says things like "wrap this session", "create a handoff", "carry-forward", "session summary for next time", "leave me a doc to pick this up later", or asks for a doc that will seed a future session with everything that happened, was decided, was explored, was rejected, plus what's left to do. Not for a mid-session snapshot with no file (use session-status), recording one decision in the project log (use decision-log), or committing work (use staged-commit).
+description: Produce a structured handoff document at the end of a long agent session so the next session (or a teammate) can pick up without re-litigating decisions or re-running discovery. Use when the user says things like "wrap this session", "create a handoff", "carry-forward", "session summary for next time", "leave me a doc to pick this up later", or asks for a doc that will seed a future session with everything that happened, was decided, was explored, was rejected, plus what's left to do. Not for a mid-session snapshot with no file (use session-status), recording one decision in the project log (use decision-log), or committing work (use staged-commit).
 ---
 
 # session-carry-forward
@@ -43,7 +43,7 @@ Do not check in or commit the file yourself unless the user explicitly asks. Men
 1. **Confirm scope and audience.** Ask if the next reader is the same user (default) or a teammate, since the level of context-setting differs. If user doesn't volunteer, assume same-user and skip the question.
 2. **Survey the current state.** Use `git log`, `git status`, `git branch`, `gh run list` (if applicable), and the task/todo list (if this CLI has one) to inventory what landed, what's open, and what's in flight. Do not include raw command output in the doc — synthesize.
 3. **Walk the session backward.** Pick out: decisions made, paths considered-but-rejected, paths attempted-and-abandoned, findings (technical and procedural), open follow-ups.
-4. **Fill the template at [`references/template.md`](references/template.md) in order.** Keep each section tight; if a section would be empty for this session, drop the heading rather than write "N/A".
+4. **Fill the template at [`references/template.md`](references/template.md) in order.** A filled-in, fictional sample is at [`examples/example-carry-forward.md`](examples/example-carry-forward.md). Keep each section tight; if a section would be empty for this session, drop the heading rather than write "N/A".
 5. **Write the seed prompt last.** It is a literal paste-ready block, not a summary-of-the-doc. A future session pastes that block and gets re-oriented.
 6. **Show the user the path** you wrote to and a quick view of the doc's top section.
 

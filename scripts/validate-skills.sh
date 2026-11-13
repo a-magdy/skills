@@ -1,64 +1,74 @@
 #!/usr/bin/env bash
 # Repo consistency checks for own skills. Run locally or in CI; read-only.
 #
-# The list of own skills is derived from plugin/skills/ (what the plugin ships)
-# and from top-level dirs holding a SKILL.md, so a new skill is covered without
-# editing this script.
+# Own skills are every plugin/skills/<name>/ folder, so a new skill is covered
+# without editing this script.
 #
 # Usage: ./scripts/validate-skills.sh
 
 set -uo pipefail
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-cd "$REPO_ROOT"
+cd "$REPO_ROOT" || exit 1
 
 fail=0
 err() { echo "FAIL  $*"; fail=1; }
 
-# 1. Every plugin/skills entry is a symlink that resolves to a dir with a SKILL.md.
-for link in plugin/skills/*; do
-  name="$(basename "$link")"
-  [ -L "$link" ] || { err "plugin/skills/$name is not a symlink"; continue; }
-  [ -f "$link/SKILL.md" ] || err "plugin/skills/$name does not resolve to a dir with SKILL.md"
+# 1. Every plugin/skills entry is a real folder with a SKILL.md. Symlinks are
+#    rejected: a link pointing outside the plugin may not survive being copied
+#    into a CLI's plugin cache.
+for entry in plugin/skills/*; do
+  name="$(basename "$entry")"
+  if [ -L "$entry" ]; then err "plugin/skills/$name is a symlink; own skills must be real folders"; continue; fi
+  [ -d "$entry" ] || { err "plugin/skills/$name is not a folder"; continue; }
+  [ -f "$entry/SKILL.md" ] || err "plugin/skills/$name has no SKILL.md"
 done
 
-# 2. Every top-level skill dir is shipped by the plugin.
-for f in */SKILL.md; do
-  name="$(dirname "$f")"
-  [ -L "plugin/skills/$name" ] || err "$name has a SKILL.md but no plugin/skills/$name symlink"
+# 2. No skill folders outside plugin/skills (the old root-level layout).
+for stray in */SKILL.md; do
+  [ -f "$stray" ] || continue
+  err "$(dirname "$stray")/ holds a SKILL.md at the repo root; move it to plugin/skills/"
 done
 
-# 3. Frontmatter: name equals folder, description present and <= 1024 chars.
+# 3. Frontmatter: name equals folder; description is a plain one-line YAML
+#    scalar (no quoting, no folded block) of at most 1024 characters.
 python3 - <<'PY' || fail=1
 import glob, os, re, sys
 
 bad = 0
-for path in sorted(glob.glob("*/SKILL.md")):
-    folder = os.path.dirname(path)
+def fail(path, msg):
+    global bad
+    print(f"FAIL  {path}: {msg}"); bad = 1
+
+for path in sorted(glob.glob("plugin/skills/*/SKILL.md")):
+    folder = os.path.basename(os.path.dirname(path))
     text = open(path, encoding="utf-8").read()
     m = re.match(r"---\n(.*?)\n---\n", text, re.S)
     if not m:
-        print(f"FAIL  {path}: no frontmatter"); bad = 1; continue
-    fm = m.group(1)
-    name = re.search(r"^name:\s*(.+)$", fm, re.M)
-    if not name or name.group(1).strip().strip("'\"") != folder:
-        print(f"FAIL  {path}: name must equal folder '{folder}'"); bad = 1
-    desc = re.search(r"^description:\s*(.*?)(?=^\S[\w-]*:|\Z)", fm, re.S | re.M)
-    body = " ".join(desc.group(1).split()) if desc else ""
-    body = re.sub(r"^[>|][+-]?\s*", "", body)
-    if not body:
-        print(f"FAIL  {path}: empty description"); bad = 1
-    elif len(body) > 1024:
-        print(f"FAIL  {path}: description is {len(body)} chars (max 1024)"); bad = 1
+        fail(path, "no frontmatter"); continue
+    lines = m.group(1).split("\n")
+    fields = {}
+    for line in lines:
+        km = re.match(r"^([\w-]+):\s*(.*)$", line)
+        if not km:
+            fail(path, f"frontmatter line is not 'key: value' on one line: {line[:40]!r}"); continue
+        fields[km.group(1)] = km.group(2).strip()
+    if fields.get("name") != folder:
+        fail(path, f"name must equal folder '{folder}'")
+    desc = fields.get("description", "")
+    if not desc:
+        fail(path, "empty description")
+    elif desc[0] in "'\">|":
+        fail(path, "description must be a plain one-line value (no quotes, no '>' or '|' block)")
+    elif ": " in desc or " #" in desc:
+        fail(path, "description contains ': ' or ' #', which breaks plain YAML; rephrase it")
+    elif len(desc) > 1024:
+        fail(path, f"description is {len(desc)} chars (max 1024)")
 sys.exit(bad)
 PY
 
-# 4. Each own skill is listed in the README and the triggers doc.
-for f in */SKILL.md; do
-  name="$(dirname "$f")"
-  grep -q "\`$name\`" README.md        || err "$name is not listed in README.md"
-  grep -q "\`$name\`" docs/TRIGGERS.md || err "$name is not listed in docs/TRIGGERS.md"
-done
+# 4. The generated skill tables in README.md and docs/TRIGGERS.md are current.
+./scripts/sync-docs.sh --check || fail=1
 
 # 5. The Claude and Copilot hook configs must stay identical.
 cmp -s plugin/hooks/hooks.json plugin/com.github.copilot/hooks/hooks.json \

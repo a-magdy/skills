@@ -1,22 +1,37 @@
 # personal/skills
 
-A small set of [Claude Code](https://docs.claude.com/en/docs/claude-code/overview) skills for managing long, multi-day sessions: keeping track of state, preserving context across sessions, and capturing decisions where they belong.
+Agent skills and the tooling to install them, for both [Claude Code](https://docs.claude.com/en/docs/claude-code/overview) and [GitHub Copilot CLI](https://docs.github.com/en/copilot/concepts/agents/about-copilot-cli). One repo sets up a machine with:
 
-All four skills work together along the session lifecycle — **start, middle, end, across sessions, across projects**. Each one fills a single gap; together they let you treat a Claude session more like a working memory and less like a chat that gets forgotten.
+| What | Where it lives | Installed by |
+|---|---|---|
+| **Own skills**, shipped as the `personal-skills` plugin with session hooks | [`plugin/`](./plugin/) | each CLI's `plugin install` |
+| **Third-party skills**, pinned by commit and content hash | [`apm.yml`](./apm.yml) + [`apm.lock.yaml`](./apm.lock.yaml) | [`install.sh`](./install.sh) |
+| **Whole third-party plugins** (hooks, agents, MCP servers) | [`plugins.list`](./plugins.list) | [`install-plugins.sh`](./install-plugins.sh) |
+| **Global preferences** shared by both CLIs | [`config/global/AGENTS.md`](./config/global/AGENTS.md) | [`install-instructions.sh`](./install-instructions.sh) |
 
-## Skills
+The own skills centre on long, multi-day sessions: keeping track of state, handing context to the next session, and recording decisions where they belong. A few standalone skills (commits, site design, Danish property due diligence) ship alongside.
 
-**Invocation:** *auto* means the agent loads the skill when your prompt matches its `description`; `/name` means it never loads on its own and you type the slash command. Full trigger lists: [`docs/TRIGGERS.md`](./docs/TRIGGERS.md).
+## Own skills
 
-| Skill | Invocation | Trigger phrases | Output |
-|---|---|---|---|
-| [`session-status`](./session-status/) | auto | "summarize so far" / "safe to close?" / "what am I in the middle of" | text reply, non-destructive |
-| [`session-carry-forward`](./session-carry-forward/) | auto | "wrap this session" / "carry-forward" / "create a handoff" | `<repo>/carry-forwards/<YYYY-MM-DD>-<slug>.md` |
-| [`session-resume`](./session-resume/) | auto | "resume from carry-forward" / seed-prompt detection at session start | task list + verification report |
-| [`decision-log`](./decision-log/) | auto | "log this decision" / "ADR for X" / "record this" | append to `<repo>/DECISIONS.md` |
-| [`scratch-workspace-routing`](./scratch-workspace-routing/) | auto | session starts in a scratch/temp/home dir but the prompt names a repo, path, branch or session ID / "continue where we left off" | text reply naming the verified repo (or one clarifying question) |
+**Invocation:** *auto* means the agent loads the skill when your prompt matches its `description`; `/name` means it never loads on its own and you type the slash command. Example prompts for each skill are in [`docs/TRIGGERS.md`](./docs/TRIGGERS.md).
 
-### When each one fires
+<!-- BEGIN own-skills -->
+| Skill | Invocation | What it does |
+|---|---|---|
+| [`cinematic-static-site`](./plugin/skills/cinematic-static-site/) | auto | Build cinematic, presentation-grade static websites with smooth scrolling, GSAP or CSS scroll-triggered reveals, parallax, WebGL backgrounds and chapter-based editorial layouts that feel like an interactive story. |
+| [`danish-listing-review`](./plugin/skills/danish-listing-review/) | auto | Deep buy-side due diligence on a Danish property the user is considering buying. |
+| [`decision-log`](./plugin/skills/decision-log/) | auto | Append a single decision entry to a project-level decision log (`DECISIONS.md` at the repo root by default). |
+| [`multi-variant-site-design`](./plugin/skills/multi-variant-site-design/) | auto | Design a website by building several parallel, working design variants from one content brief, housing them in a comparison gallery, and promoting the winner to production while keeping the rest as an archive. |
+| [`scratch-workspace-routing`](./plugin/skills/scratch-workspace-routing/) | auto | Find and verify the real project repository when a session starts outside it, in a scratch, temp, sandbox or home directory, or an editor- or app-generated scratch workspace with no project selected, but the user's request refers to existing project work. |
+| [`session-carry-forward`](./plugin/skills/session-carry-forward/) | auto | Produce a structured handoff document at the end of a long agent session so the next session (or a teammate) can pick up without re-litigating decisions or re-running discovery. |
+| [`session-resume`](./plugin/skills/session-resume/) | auto | Resume work from a session-carry-forward document. |
+| [`session-status`](./plugin/skills/session-status/) | auto | Mid-session health-and-status report for a long agent session. |
+| [`staged-commit`](./plugin/skills/staged-commit/) | auto | Commit working-tree changes in small, logically-grouped stages with clean, convention-following messages. |
+<!-- END own-skills -->
+
+This table is generated from each skill's frontmatter by `./scripts/sync-docs.sh`.
+
+### The session lifecycle
 
 ```
 Project start ──→ … ──→ Long session ──→ Session end ──→ Days pass ──→ Next session
@@ -26,214 +41,38 @@ Project start ──→ … ──→ Long session ──→ Session end ──�
                        decision-log   (anytime, accumulates project-level)
 ```
 
-### Also in this repo
+- **`session-status`** is a read-only snapshot with three flavors: "summarize this session so far", "is it safe to close?" (a yes/no with the specific blockers), and "what am I in the middle of?". It never writes a file.
+- **`session-carry-forward`** writes one structured handoff file to `<repo>/carry-forwards/<YYYY-MM-DD>-<slug>.md`: state, decisions paired with the rejected alternative, abandoned paths, open items, verification commands and a paste-ready seed prompt. It keeps the file out of git and never commits.
+- **`session-resume`** reads the latest carry-forward, runs its verification commands, reports drift, recreates the task list and names the next action.
+- **`decision-log`** appends one entry to `<repo>/DECISIONS.md` (or `docs/decisions/` if the repo uses that). Unlike a carry-forward, it is a long-lived project record.
+- **`scratch-workspace-routing`** finds and verifies the real repository when a session starts in a scratch, temp or home directory but the prompt refers to existing project work.
 
-Beyond the session lifecycle, the plugin ships a few standalone skills:
+### Hooks
 
-| Skill | Invocation | Trigger phrases | Output |
-|---|---|---|---|
-| [`staged-commit`](./staged-commit/) | auto | "commit this" / "commit in stages" / "stage and commit" | one or more git commits (never pushed) |
-| [`cinematic-static-site`](./cinematic-static-site/) | auto | "cinematic" / "scroll-driven animations" / "parallax" / "WebGL background" / "smooth scrolling" | guidance (no file output) |
-| [`multi-variant-site-design`](./multi-variant-site-design/) | auto | "design variants" / "show me a few directions for the site" / "compare layouts" | guidance + variant gallery |
-| [`danish-listing-review`](./danish-listing-review/) | auto | shares a Danish property address / bolig URL / PDFs; "is this worth buying?"; tilstandsrapport, salgsopstilling, energimærke, ejerudgift | markdown analysis + standalone HTML report |
+The plugin also ships two hooks ([`plugin/hooks/`](./plugin/hooks/)), both read-only:
 
-## Per-skill detail
+- **SessionStart** (startup and resume): outside a git repo it points the agent at `scratch-workspace-routing`; inside a repo it notes the newest carry-forward if one exists and is under 14 days old. The agent is told not to act on it unprompted.
+- **SessionEnd**: if the working tree is dirty, it suggests a carry-forward.
 
-### `session-status` — mid-session check
+## Quick start
 
-A read-only snapshot. Three flavors triggered by phrasing:
+```sh
+git clone <this-repo-url> && cd skills
+apm install              # fetch third-party skills (apm.yml); requires APM
+./install.sh             # symlink them into ~/.claude/skills and ~/.copilot/skills
+./install-plugins.sh     # install whole plugins, including this repo's own skills
+./install.sh --check     # audit the result
+```
 
-- **"summarize this session so far"** — running TL;DR + decision log + open threads. Useful when context is getting long or you're stepping away briefly.
-- **"is it safe to close (this session)?"** — yes/no health check. Returns the specific blockers if "no": background jobs, dirty tree, unpushed commits, in-flight CI, stale agents, in-progress tasks.
-- **"what am I in the middle of?"** — focused view: current task, last decision, open question to the user, next intended action.
+Requires [APM](https://github.com/microsoft/apm) for the third-party skills. Global preferences are opt-in; see [Global instructions](#global-instructions).
 
-Never writes a file. If you want a handoff doc, ask for a carry-forward instead.
-
-### `session-carry-forward` — end-of-session handoff doc
-
-Produces a single structured Markdown file that captures everything a future session needs to resume cleanly: outcome state, decisions paired with the rejected alternative + reason, abandoned paths, deferred TODOs, gotchas, files touched, external-systems status, verification commands, and a paste-ready seed prompt.
-
-Writes to `<repo>/carry-forwards/<YYYY-MM-DD>-<slug>.md` so the doc lives with the work it describes. Don't commit it automatically — the user does that when ready.
-
-### `session-resume` — pick up from a carry-forward
-
-The companion to `session-carry-forward`. Reads the latest carry-forward doc, runs the verification commands inside it, surfaces drift (new commits, CI changes, untracked files, etc.), recreates the task list from the doc's "Deferred / open items" section, and reports a single "ready to continue from <next action>" line.
-
-Without this skill, the carry-forward is just a doc you re-read manually. With it, picking up next week takes one prompt.
-
-### `decision-log` — accumulating project-level decision record
-
-Appends a single decision entry to `<repo>/DECISIONS.md` (or a new file under `docs/decisions/` if that's the convention in the repo). Each entry records the chosen option, the rejected alternative(s), the reason, and the consequences.
-
-Different from `session-carry-forward`: that skill captures decisions only inside per-session docs. `decision-log` builds a long-lived, append-only record across sessions and people — useful when future-you (or a teammate) asks "why did we choose X?" months later and doesn't want to grep 12 carry-forwards.
+All three installers follow the same conventions: they default to both CLIs, accept `--claude` / `--copilot` to narrow that, support `--dry-run`, and back up anything they replace to a `.backup.*` sibling.
 
 ## Install
 
-The repo's own skills ship as a plugin (see [Install this repo as a plugin](#install-this-repo-as-a-plugin)). `install.sh` links the **third-party** skills into `~/.claude/skills/` and/or `~/.copilot/skills/`:
+### Own skills: the plugin
 
-```sh
-git clone <this-repo-url> ~/dev/personal/skills
-cd ~/dev/personal/skills
-./install.sh
-```
-
-The installer automatically runs `apm install` to fetch third-party dependencies before symlinking them. Requires [APM](https://github.com/microsoft/apm) (`curl -sSL https://aka.ms/apm-unix | sh`).
-
-By default it **symlinks** each third-party skill into `~/.claude/skills/`, so `apm update` flows through without re-installing. Useful flags:
-
-| Flag | Effect |
-|---|---|
-| `--copilot` | also/instead install into `~/.copilot/skills/` (Copilot CLI) |
-| `--claude` | install into `~/.claude/skills/` (default when no target flag given) |
-| `--copy` | copy instead of symlink (no auto-update from this repo) |
-| `--target PATH` | install to a non-default location |
-| `--dry-run` | preview the plan without making changes (no `apm install` is run) |
-| `--check` | read-only health check of `~/.claude/skills` and `~/.copilot/skills`: missing, broken, copied or duplicate skills (exits 1 on problems or unavailable APM skill sources) |
-| `-h`, `--help` | full help text |
-| _positional args_ | install only those skills (e.g. `./install.sh i-have-adhd grill-me`) |
-
-Existing folders at the target are handled safely:
-
-- a previous symlink → removed and replaced;
-- a real directory → backed up to `<name>.bak-<YYYYMMDD-HHMMSS>` and replaced.
-
-### Global instructions
-
-Shared cross-project preferences live in [`config/global/AGENTS.md`](./config/global/AGENTS.md).
-They are separate from this repository's root instructions, which describe maintaining this
-repo and must not be installed globally.
-
-```sh
-# Instructions only; no APM fetches or plugin installation
-bash install-instructions.sh --claude --copilot
-bash install-instructions.sh --check
-bash install-instructions.sh --dry-run
-
-# Include instructions when installing skills
-./install.sh --claude --copilot --with-instructions
-./install.sh --claude --copilot --with-instructions --dry-run
-./install.sh --claude --copilot --with-instructions --check
-```
-
-The instruction installer defaults to both clients. Through `install.sh`, it follows
-explicit `--claude` / `--copilot` selections, otherwise Claude only (both for `--check`),
-matching the skill defaults. A custom skill `--target` does not change instruction paths.
-`--with-instructions` is opt-in; existing skill-only installs are unchanged.
-
-| Destination | Source |
-|---|---|
-| `${CLAUDE_CONFIG_DIR:-~/.claude}/CLAUDE.md` | `config/global/AGENTS.md` |
-| `${COPILOT_HOME:-~/.copilot}/copilot-instructions.md` | `config/global/AGENTS.md` |
-
-Existing files and symlinks (including broken ones) are moved to unique sibling
-`.backup.*` paths. Directories are refused; correct links are left untouched. Dry-run and
-check modes never write files; check exits nonzero for missing/incorrect links. Keep the
-clone at its installed location, or rerun installation after moving it. This does not
-configure VS Code's separate user instructions.
-
-Test the installer without touching live configuration:
-`bats tests/install-instructions.bats`.
-
-After install, *auto* skills load when your prompt matches their description, and `/name` skills load only when you type the slash command (see the **Invocation** columns). Not firing? See [Troubleshooting](#troubleshooting).
-
-### Third-party skills (via APM)
-
-The following skills are sourced from [`anthropics/skills`](https://github.com/anthropics/skills) and managed by [APM](https://github.com/microsoft/apm) (declared in `apm.yml`):
-
-| Skill | Source | Invocation |
-|---|---|---|
-| `frontend-design` | anthropics/skills | auto |
-| `mcp-builder` | anthropics/skills | auto |
-| `pdf` | anthropics/skills | auto |
-| `pptx` | anthropics/skills | auto |
-| `skill-creator` | anthropics/skills | auto |
-| `xlsx` | anthropics/skills | auto |
-| `i-have-adhd` | ayghri/i-have-adhd | `/i-have-adhd` (stays on until "stop adhd mode") |
-| `grill-me` | mattpocock/skills | `/grill-me` |
-| `show-me` | humanlayer/skills | `/show-me` |
-| `improve-claude-md` | humanlayer/skills | auto |
-
-To update to latest upstream versions: `apm update`. The lockfile (`apm.lock.yaml`) pins exact commits and content hashes for reproducibility.
-
-### Where each tool looks for skills
-
-| Tool | Personal (all projects) | Project (inside a repo) | Plugins |
-|---|---|---|---|
-| Claude Code | `~/.claude/skills` | `.claude/skills` | yes |
-| Copilot CLI | `~/.copilot/skills`, `~/.agents/skills` | `.github/skills`, `.claude/skills`, `.agents/skills` | yes |
-| VS Code Copilot | `~/.copilot/skills`, `~/.claude/skills`, `~/.agents/skills` | `.github/skills`, `.claude/skills`, `.agents/skills` | yes |
-| Claude desktop / claude.ai | none (upload skills in Settings) | none | Cowork plugins only |
-
-Two consequences: APM's `.agents/skills` in this repo makes the third-party skills show up in Copilot **only while you work inside this repo**, and VS Code reads both `~/.claude/skills` and `~/.copilot/skills`, so a skill linked into both can be listed twice there.
-
-## Troubleshooting
-
-Run `./install.sh --check` first. It lists, per tool, which skills are missing, broken, copied instead of linked, or duplicated with the plugin.
-If APM skill sources are absent or empty, the check exits 1 with "Check incomplete" rather than reporting a healthy install. Run `apm install` in this repo, then rerun the check; `--check` never fetches dependencies itself.
-
-For managed skills, the audit requires a linked `SKILL.md` and verifies that the resolved
-directory matches the installer's expected source. It reports `WRONG` for a different
-checkout and `INVALID` for a target without `SKILL.md`; relative links to the right source
-are accepted. Run the shell test suite with `bats tests/*.bats`.
-
-### TODO: integrity follow-ups
-
-- Decide whether to restore or remove broken external skill links reported by `--check`;
-  reinstalling this repo's skills does not repair links owned by other repositories.
-
-Known quirks:
-
-- **Only `description` decides auto-triggering.** Trigger phrases that live only in the SKILL.md body are never seen when the agent picks a skill.
-- **Copilot CLI and `disable-model-invocation: true`:** typing `/i-have-adhd` at the start of the prompt works; asking the model to "use the i-have-adhd skill" does not ([github/copilot-cli#4438](https://github.com/github/copilot-cli/issues/4438)).
-- **New skill not showing mid-session:** `/skills reload` in Copilot CLI; restart Claude Code.
-
-## Two deployment layers
-
-This repo deploys agent context at **two layers**:
-
-| Layer | Source of truth | Deployed by | What it is |
-|---|---|---|---|
-| **Skills** | `apm.yml` + native skill dirs | [`install.sh`](./install.sh) | Individual skills (a `SKILL.md` folder), symlinked into `~/.claude/skills` and `~/.copilot/skills`. |
-| **Whole plugins / harnesses** | [`plugins.list`](./plugins.list) | [`install-plugins.sh`](./install-plugins.sh) | Full plugins installed natively through each agent CLI's own plugin system. |
-
-A symlinked skill is just a `SKILL.md` plus supporting files. A **whole plugin** carries things a symlink can't express — session hooks (auto-bootstrap that re-injects after context compaction), companion tools (a `Skill` tool, subagent/task-list helpers), bundled MCP/LSP servers or agents, and a `plugin.json` / `marketplace.json` manifest the CLI reads. `obra/superpowers` is the canonical example: pulling its skills via APM makes them *available*, but only the whole plugin gives you the always-on methodology, because the auto-bootstrap lives in the plugin's hooks — not in any single `SKILL.md`.
-
-### Whole plugins / harnesses
-
-[`plugins.list`](./plugins.list) is pipe-delimited, one plugin per line (comments start with `#`):
-
-```
-# marketplace_repo | marketplace_name | plugin | targets | description
-obra/superpowers-marketplace | superpowers-marketplace | superpowers | copilot,claude | ...
-```
-
-- **marketplace_repo** — GitHub `owner/repo` of the marketplace to register.
-- **marketplace_name** — the `name` in that marketplace's `marketplace.json` (used as `plugin@marketplace_name`).
-- **plugin** — the plugin's name within the marketplace.
-- **targets** — comma-separated CLIs (`copilot`, `claude`).
-- **description** — free text (informational only).
-
-```sh
-./install-plugins.sh            # install into both copilot and claude (default)
-./install-plugins.sh --dry-run  # preview the exact CLI commands
-./install-plugins.sh --copilot  # only the copilot target
-./install-plugins.sh --claude   # only the claude target
-```
-
-The script is idempotent (re-adding a marketplace or re-installing a plugin is a no-op refresh) and skips any target whose CLI is not on `PATH`, so it's safe to re-run and safe on machines missing one CLI. It exits non-zero only if an actual install command fails.
-
-### Full machine bootstrap
-
-```sh
-git pull
-apm install             # fetch APM skill dependencies (apm.yml)
-./install.sh --claude --copilot  # symlink third-party (APM) skills into ~/.claude and ~/.copilot
-./install-plugins.sh    # install whole plugins/harnesses via each CLI (plugins.list)
-```
-
-## Install this repo as a plugin
-
-This repo is itself a **plugin marketplace** (see [`marketplace.json`](./marketplace.json)). Its own skills — session lifecycle, site design, Danish due diligence — plus SessionStart/SessionEnd hooks ship as the `personal-skills` plugin, installable in one command:
+This repo is itself a plugin marketplace (see [`marketplace.json`](./marketplace.json)). `install-plugins.sh` installs the `personal-skills` plugin from GitHub; to do it by hand:
 
 ```sh
 # Copilot CLI
@@ -245,37 +84,160 @@ claude plugin marketplace add a-magdy/skills
 claude plugin install personal-skills@personal-skills-marketplace -y
 ```
 
-> **Pick one path for the repo's own skills.** Installing the plugin **and** symlinking the same skills via `install.sh` loads every one **twice**. The default `install.sh` only symlinks third-party (APM) skills for this reason; the plugin is the source for the repo's own skills. Use `install.sh` symlinks when you're actively editing the skills (live edits), the plugin when you just want to consume them.
+To work on the skills, add the marketplace from your local checkout instead (`plugin marketplace add /path/to/skills`). Both CLIs copy the plugin into their own cache, so after editing run `plugin update personal-skills@personal-skills-marketplace` and restart the session.
 
-## Versioning
+> **Own skills come from the plugin only.** Symlinking one into `~/.claude/skills` as well loads it twice; `./install.sh --check` reports that as `DUPLICATE`.
 
-The single source of truth is the [`VERSION`](./VERSION) file. Run [`scripts/sync-version.sh`](./scripts/sync-version.sh) to stamp it into `apm.yml` and every plugin/marketplace manifest so they never drift:
+### Third-party skills (APM)
+
+Declared in [`apm.yml`](./apm.yml) and managed by [APM](https://github.com/microsoft/apm). `apm install` fetches them into `.agents/skills/` (gitignored); `install.sh` symlinks them from there, and runs `apm install` first if they have not been fetched.
+
+| Skill | Source | Invocation |
+|---|---|---|
+| `frontend-design` | anthropics/skills | auto |
+| `mcp-builder` | anthropics/skills | auto |
+| `pdf` | anthropics/skills | auto |
+| `pptx` | anthropics/skills | auto |
+| `skill-creator` | anthropics/skills | auto |
+| `xlsx` | anthropics/skills | auto |
+| `improve-claude-md` | humanlayer/skills | auto |
+| `i-have-adhd` | ayghri/i-have-adhd | `/i-have-adhd` (stays on until "stop adhd mode") |
+| `grill-me` | mattpocock/skills | `/grill-me` |
+| `show-me` | humanlayer/skills | `/show-me` |
+
+To move to the latest upstream versions, run `apm update` and read the diff of `.agents/skills/` before committing the new lockfile: these files are prompt content that loads into your sessions.
+
+| `install.sh` flag | Effect |
+|---|---|
+| `--claude`, `--copilot` | install into only that CLI (default: both) |
+| `--target PATH` | install to a custom directory instead |
+| `--copy` | copy instead of symlink (no auto-update from this repo) |
+| `--dry-run` | preview the plan without making changes (no `apm install` is run) |
+| `--check` | read-only audit of both skill directories; exits 1 on problems |
+| `--with-plugins` | afterwards, also run `install-plugins.sh` |
+| `--with-instructions` | also link the global preferences for the selected CLIs |
+| _positional args_ | install only those skills (e.g. `./install.sh i-have-adhd grill-me`) |
+| `-h`, `--help` | full help text |
+
+An existing symlink at the target is replaced; a real directory is moved to `<name>.backup.<YYYYMMDD-HHMMSS>` first.
+
+### Whole plugins
+
+A symlinked skill is just a `SKILL.md` plus supporting files. A whole plugin carries things a symlink cannot express: session hooks, agents, bundled MCP servers and a manifest the CLI reads. Those are listed in [`plugins.list`](./plugins.list), one per line:
+
+```
+# marketplace_repo | marketplace_name | plugin | targets | description
+obra/superpowers-marketplace | superpowers-marketplace | superpowers | copilot,claude | ...
+```
+
+| Plugin | Targets | Notes |
+|---|---|---|
+| `superpowers` | Copilot, Claude | Agentic development methodology with a session-start bootstrap. |
+| `personal-skills` | Copilot, Claude | This repo's own skills and hooks. |
+| `awesome-copilot` | Copilot | Suggests community agents, instructions and skills for the current repo. Bundles its own MCP server, which needs Docker running. |
 
 ```sh
-./scripts/sync-version.sh 1.2.0   # set + stamp
-./scripts/sync-version.sh --check # verify all match (used by CI)
+./install-plugins.sh            # both CLIs
+./install-plugins.sh --dry-run  # preview the exact CLI commands
+./install-plugins.sh --copilot  # only one CLI
 ```
+
+The script is safe to re-run, skips any CLI that is not on `PATH`, and exits non-zero only if an install command fails. Third-party plugins install at their marketplace's current version; neither CLI offers a way to pin one from this file, so review a plugin's hooks before adding it here.
+
+### Global instructions
+
+Shared cross-project preferences live in [`config/global/AGENTS.md`](./config/global/AGENTS.md). They are separate from this repository's root `AGENTS.md`, which describes maintaining this repo and must not be installed globally.
+
+```sh
+./install-instructions.sh             # link for both CLIs
+./install-instructions.sh --check     # audit only
+./install-instructions.sh --dry-run   # preview
+
+./install.sh --with-instructions      # or together with the skills
+```
+
+| Destination | Source |
+|---|---|
+| `${CLAUDE_CONFIG_DIR:-~/.claude}/CLAUDE.md` | `config/global/AGENTS.md` |
+| `${COPILOT_HOME:-~/.copilot}/copilot-instructions.md` | `config/global/AGENTS.md` |
+
+Existing files and symlinks (including broken ones) are moved to unique sibling `.backup.*` paths. Directories are refused; correct links are left untouched. Dry-run and check modes never write files. Through `install.sh`, the installer follows the `--claude` / `--copilot` selection; a custom skill `--target` does not change instruction paths. Keep the clone where it was installed, or rerun after moving it. This does not configure VS Code's separate user instructions.
+
+### Where each tool looks for skills
+
+| Tool | Personal (all projects) | Project (inside a repo) | Plugins |
+|---|---|---|---|
+| Claude Code | `~/.claude/skills` | `.claude/skills` | yes |
+| Copilot CLI | `~/.copilot/skills`, `~/.agents/skills` | `.github/skills`, `.claude/skills`, `.agents/skills` | yes |
+| VS Code Copilot | `~/.copilot/skills`, `~/.claude/skills`, `~/.agents/skills` | `.github/skills`, `.claude/skills`, `.agents/skills` | yes |
+| Claude desktop / claude.ai | none (upload skills in Settings) | none | Cowork plugins only |
+
+Two consequences: APM's `.agents/skills` in this repo makes the third-party skills show up in Copilot while you work inside this repo even before installing, and VS Code reads both `~/.claude/skills` and `~/.copilot/skills`, so a skill linked into both can be listed twice there.
+
+## Troubleshooting
+
+Run `./install.sh --check` first. Per CLI and per skill it reports:
+
+| Status | Meaning |
+|---|---|
+| `ok` | linked to the expected source in this checkout |
+| `MISSING` | not installed |
+| `BROKEN` | a symlink whose target no longer exists |
+| `WRONG` | linked to a different checkout |
+| `INVALID` | the link target has no `SKILL.md` |
+| `COPY` | a real directory, which will not pick up repo changes |
+| `DUPLICATE` | an own skill linked here that the plugin also ships |
+| `BACKUP` | a leftover `.backup.*` directory from an earlier install |
+
+If APM skill sources are absent, the check exits 1 with "Check incomplete" rather than reporting a healthy install: run `apm install`, then check again. Plugins are not covered; use `claude plugin list` and `copilot plugin list`.
+
+Known quirks:
+
+- **Only `description` decides auto-triggering.** Trigger phrases that live only in the `SKILL.md` body are never seen when the agent picks a skill.
+- **Copilot CLI and `/name` skills:** typing `/i-have-adhd` at the start of the prompt works; asking the model to "use the i-have-adhd skill" does not ([github/copilot-cli#4438](https://github.com/github/copilot-cli/issues/4438)).
+- **New skill not showing mid-session:** `/skills reload` in Copilot CLI; restart Claude Code.
+- **Links owned by other repositories:** `--check` reports broken links it did not create, but reinstalling from this repo does not repair them. Restore or remove those by hand.
+
+## Working on this repo
+
+```
+plugin/                    the personal-skills plugin
+├─ skills/<name>/SKILL.md  own skills: one folder each, discovered automatically
+├─ hooks/                  SessionStart / SessionEnd scripts and Claude's hooks.json
+└─ …                       the Claude and Copilot manifests
+config/global/AGENTS.md    global preferences
+scripts/                   sync-version.sh, sync-docs.sh, validate-skills.sh
+tests/                     bats tests for the installers, hooks and scripts
+docs/TRIGGERS.md           example prompts per skill
+```
+
+**Adding or changing a skill** takes two steps:
+
+1. Create or edit `plugin/skills/<name>/SKILL.md`. Both CLIs discover every folder under `plugin/skills/`, so there is nothing to register.
+2. Run `./scripts/sync-docs.sh` to regenerate the tables in this README and in `docs/TRIGGERS.md`.
+
+`./scripts/validate-skills.sh` checks the result (frontmatter, generated tables, hook parity, no personal paths) and `bats tests/*.bats` runs the shell tests; CI runs both. Maintainer detail is in [`AGENTS.md`](./AGENTS.md).
+
+**Versioning:** the [`VERSION`](./VERSION) file is the single source of truth. `./scripts/sync-version.sh 1.2.0` sets it and stamps every manifest; `--check` verifies they match.
 
 ## Design notes
 
-A few principles that shaped this set:
-
-- **One skill per lifecycle moment, not one per question.** `session-status` handles three related questions because they share the same survey work; splitting would duplicate effort.
+- **One skill per lifecycle moment, not one per question.** `session-status` handles three related questions because they share the same survey work.
 - **Decisions are always recorded with their rejected alternative.** A decision without context loses half its value next month.
-- **Verification commands ship with the doc.** Drift between sessions is normal — the carry-forward includes the shell snippets the next session runs first. `session-resume` runs only plainly read-only ones unprompted and asks before anything else, because a carry-forward is a file that may not be yours.
+- **Verification commands ship with the doc.** Drift between sessions is normal, so a carry-forward includes the commands the next session runs first. `session-resume` runs only plainly read-only ones unprompted and asks before anything else, because a carry-forward is a file that may not be yours.
 - **Carry-forwards stay out of git.** `session-carry-forward` adds `carry-forwards/` to the repo's local `.git/info/exclude` unless it is already ignored.
-- **Read-only by default.** Only `session-carry-forward` and `decision-log` write to disk, and neither commits.
-- **No `co-authored-by` trailers** are produced by these skills. The user's commits are the user's.
+- **Writes are explicit and local.** The session skills only read, except `session-carry-forward` and `decision-log`, which write one file each. `staged-commit` commits but never pushes; the site and property skills write their own output files. Nothing commits or pushes on its own.
+- **No `Co-Authored-By` trailers.** The user's commits are the user's.
 
 ## Conventions
 
-- Output paths default to inside the calling repo so the artifacts live with the code they describe.
-- Absolute dates (`YYYY-MM-DD`) only — relative phrasing breaks across sessions.
+- Output paths default to inside the calling repo, so artifacts live with the work they describe.
+- Absolute dates (`YYYY-MM-DD`) only; relative phrasing breaks across sessions.
 - Commit SHAs in `code` formatting, never commit messages.
-- Secrets are never written to skill output. If a secret is encountered, its existence and location are noted; the value never is.
+- Secrets are never written to skill output. If one is encountered, its existence and location are noted; the value never is.
 
-## Contributing / extending
+## Contributing
 
-If you want to add a skill, the bar is: it should fill a gap that synthesizes across multiple sources (git + GitHub + task list + memory), follow a non-obvious template, or persist information that would otherwise be lost across sessions. A skill that just dresses up a single shell command isn't worth the surface area.
+A new skill should fill a gap that synthesizes across several sources (git, GitHub, the task list, memory), follow a non-obvious template, or persist information that would otherwise be lost across sessions. A skill that dresses up a single shell command is not worth the surface area.
 
-See [Anthropic's skill documentation](https://docs.claude.com/en/docs/claude-code/skills) for the full skill format.
+See [Anthropic's skill documentation](https://docs.claude.com/en/docs/claude-code/skills) for the skill format. Licensed under [MIT](./LICENSE).

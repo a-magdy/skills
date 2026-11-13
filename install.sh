@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
-# Install the skills in this repo into ~/.claude/skills/ (or a custom target).
+# Install third-party skills into ~/.claude/skills/ and ~/.copilot/skills/ (or a custom target).
 #
 # Usage:
-#   ./install.sh                          # symlink APM (third-party) skills into ~/.claude/skills/
-#   ./install.sh --copilot                # also/instead install into ~/.copilot/skills/
-#   ./install.sh --claude --copilot       # install into both Claude and Copilot
+#   ./install.sh                          # symlink APM (third-party) skills into both CLIs
+#   ./install.sh --claude                 # only ~/.claude/skills/
+#   ./install.sh --copilot                # only ~/.copilot/skills/
 #   ./install.sh --copy                   # copy instead of symlink
 #   ./install.sh --target /custom/path    # install to a custom location
 #   ./install.sh session-status           # install only specific skill(s), own or APM
@@ -15,27 +15,28 @@
 #   ./install.sh -h | --help              # show this help
 #
 # NOTE: by default this installs only APM-managed (third-party) skills. The
-# repo's own skills ship via the `personal-skills` plugin (marketplace.json),
-# so they are no longer symlinked here (avoids double-loading with the plugin).
+# repo's own skills live in plugin/skills/ and ship via the `personal-skills`
+# plugin (marketplace.json), so they are not symlinked here (avoids
+# double-loading with the plugin). Name one explicitly to link it for live edits.
 #
-# Targets (repeatable; default is --claude only):
+# Targets (repeatable; default is both --claude and --copilot):
 #   --claude            ~/.claude/skills   (APM skills sourced from .agents/skills/)
 #   --copilot           ~/.copilot/skills  (APM skills sourced from .agents/skills/)
 #   --target PATH       custom dir         (APM skills sourced from .agents/skills/)
 #
 # Defaults:
 #   - mode:   symlink (so edits in this repo flow through to the agent)
-#   - target: ~/.claude/skills
+#   - target: ~/.claude/skills and ~/.copilot/skills (same default as the other installers)
 #
 # --check (read-only): checks ~/.claude/skills and ~/.copilot/skills (or the
 # targets you pass) and reports, per skill: ok, MISSING, BROKEN symlink,
 # COPY (real dir instead of a symlink), DUPLICATE (an own skill that also
-# ships in the plugin), and leftover .bak-* backups. Exits 1 if anything
+# ships in the plugin), and leftover .backup.* backups. Exits 1 if anything
 # needs fixing or APM skill sources are unavailable.
 #
 # Existing skill folders at the target:
 #   - if a symlink: removed and replaced.
-#   - if a real directory: backed up to `<name>.bak-<YYYYMMDD-HHMMSS>` and replaced.
+#   - if a real directory: backed up to `<name>.backup.<YYYYMMDD-HHMMSS>` and replaced.
 
 set -euo pipefail
 
@@ -80,26 +81,17 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
-# Default to Claude only when no target flag was given (backward compatible).
-# --check defaults to both, since the point is to compare them.
+# Default to both CLIs when no target flag was given, like install-plugins.sh
+# and install-instructions.sh.
 if [ ${#TARGET_DIRS[@]} -eq 0 ]; then
-  if $CHECK; then
-    TARGET_DIRS=("$CLAUDE_TARGET" "$COPILOT_TARGET")
-    TARGET_APM_SRCS=(".agents/skills" ".agents/skills")
-  else
-    TARGET_DIRS=("$CLAUDE_TARGET")
-    TARGET_APM_SRCS=(".agents/skills")
-  fi
+  TARGET_DIRS=("$CLAUDE_TARGET" "$COPILOT_TARGET")
+  TARGET_APM_SRCS=(".agents/skills" ".agents/skills")
 fi
 
 # Global instructions use CLI config roots, not a custom skill --target directory.
 if $WITH_INSTRUCTIONS; then
   if [ ${#PLUGIN_ARGS[@]} -eq 0 ]; then
-    if $CHECK; then
-      INSTRUCTION_ARGS=(--claude --copilot)
-    else
-      INSTRUCTION_ARGS=(--claude)
-    fi
+    INSTRUCTION_ARGS=(--claude --copilot)
   else
     INSTRUCTION_ARGS=("${PLUGIN_ARGS[@]}")
   fi
@@ -130,16 +122,15 @@ if ! $CHECK && [ -f "$REPO_ROOT/apm.yml" ] && command -v apm &>/dev/null; then
   fi
 fi
 
-# Anything that has a SKILL.md one level down is a skill (native skills).
+# Own skills: every plugin/skills/<name>/ holding a SKILL.md.
 # (while-read loops instead of mapfile so this runs on macOS's bash 3.2.)
+OWN_SKILLS_REL="plugin/skills"
 REPO_SKILLS=()
 while IFS= read -r s; do REPO_SKILLS+=("$s"); done < <(
-  find "$REPO_ROOT" -mindepth 2 -maxdepth 2 -name SKILL.md -type f \
-    -not -path "$REPO_ROOT/.claude/*" \
-    -not -path "$REPO_ROOT/.agents/*" \
-    | xargs -n1 dirname \
-    | xargs -n1 basename \
-    | sort
+  for skill_md in "$REPO_ROOT/$OWN_SKILLS_REL"/*/SKILL.md; do
+    [ -f "$skill_md" ] || continue
+    basename "$(dirname "$skill_md")"
+  done | sort
 )
 
 # APM-managed skills live under .agents/skills/ after `apm install`.
@@ -179,8 +170,8 @@ fi
 
 # Resolve sources identically for installation and auditing.
 skill_source() {
-  if [ -f "$REPO_ROOT/$1/SKILL.md" ]; then
-    printf '%s\n' "$REPO_ROOT/$1"
+  if [ -f "$REPO_ROOT/$OWN_SKILLS_REL/$1/SKILL.md" ]; then
+    printf '%s\n' "$REPO_ROOT/$OWN_SKILLS_REL/$1"
   elif [ -f "$REPO_ROOT/.agents/skills/$1/SKILL.md" ]; then
     printf '%s\n' "$REPO_ROOT/.agents/skills/$1"
   else
@@ -228,7 +219,7 @@ if $CHECK; then
       [ -e "$entry" ] || [ -L "$entry" ] || continue
       name="$(basename "$entry")"
       case "$name" in
-        *.bak-*) echo "  BACKUP     $name (left by an earlier install; delete when happy)" ;;
+        *.backup.*|*.bak-*) echo "  BACKUP     $name (left by an earlier install; delete when happy)" ;;
       esac
       case " ${SKILLS_TO_INSTALL[*]} ${REPO_SKILLS[*]} " in *" $name "*) continue ;; esac
       if [ -L "$entry" ] && [ ! -e "$entry" ]; then
@@ -287,7 +278,7 @@ for ti in "${!TARGET_DIRS[@]}"; do
         rm "$dst"
       fi
     elif [ -e "$dst" ]; then
-      backup="$dst.bak-$(date +%Y%m%d-%H%M%S)"
+      backup="$dst.backup.$(date +%Y%m%d-%H%M%S)"
       if $DRY_RUN; then
         echo "would back up existing: $dst -> $backup"
       else

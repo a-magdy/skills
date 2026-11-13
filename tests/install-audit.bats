@@ -3,13 +3,14 @@
 setup() {
   FIXTURE="$BATS_TEST_TMPDIR/repo"
   TARGET="$BATS_TEST_TMPDIR/installed"
-  mkdir -p "$FIXTURE/example" "$TARGET"
+  SKILLS="$FIXTURE/plugin/skills"
+  mkdir -p "$SKILLS/example" "$TARGET"
   cp "$BATS_TEST_DIRNAME/../install.sh" "$FIXTURE/install.sh"
-  printf '# Example\n' > "$FIXTURE/example/SKILL.md"
+  printf '# Example\n' > "$SKILLS/example/SKILL.md"
 }
 
 @test "accepts a relative link resolving to the expected source" {
-  ln -s ../repo/example "$TARGET/example"
+  ln -s ../repo/plugin/skills/example "$TARGET/example"
   run bash "$FIXTURE/install.sh" --check --target "$TARGET" example
   [ "$status" -eq 0 ]
   [[ "$output" == *"ok         example"* ]]
@@ -17,7 +18,7 @@ setup() {
 
 @test "rejects an existing skill in an old checkout without changing the link" {
   mkdir -p "$BATS_TEST_TMPDIR/old/example"
-  cp "$FIXTURE/example/SKILL.md" "$BATS_TEST_TMPDIR/old/example/SKILL.md"
+  cp "$SKILLS/example/SKILL.md" "$BATS_TEST_TMPDIR/old/example/SKILL.md"
   ln -s "$BATS_TEST_TMPDIR/old/example" "$TARGET/example"
   run bash "$FIXTURE/install.sh" --check --target "$TARGET" example
   [ "$status" -eq 1 ]
@@ -32,7 +33,7 @@ setup() {
   [ "$status" -eq 1 ]
   [[ "$output" == *"INVALID"* ]]
   rm "$TARGET/example"
-  ln -s "$FIXTURE/example/SKILL.md" "$TARGET/example"
+  ln -s "$SKILLS/example/SKILL.md" "$TARGET/example"
   run bash "$FIXTURE/install.sh" --check --target "$TARGET" example
   [ "$status" -eq 1 ]
   [[ "$output" == *"INVALID"* ]]
@@ -47,7 +48,7 @@ setup() {
 
 @test "uses the APM source when no native skill exists" {
   mkdir -p "$FIXTURE/.agents/skills/example"
-  mv "$FIXTURE/example/SKILL.md" "$FIXTURE/.agents/skills/example/SKILL.md"
+  mv "$SKILLS/example/SKILL.md" "$FIXTURE/.agents/skills/example/SKILL.md"
   ln -s "$FIXTURE/.agents/skills/example" "$TARGET/example"
   run bash "$FIXTURE/install.sh" --check --target "$TARGET" example
   [ "$status" -eq 0 ]

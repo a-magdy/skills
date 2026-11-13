@@ -1,87 +1,103 @@
 # personal/skills
 
-This repo holds hand-written skills for managing long, multi-day sessions, plus third-party skills and whole plugins pulled from public repos. It is **dual-target**: everything deploys to both Claude Code (`~/.claude/skills/`) and Copilot CLI (`~/.copilot/skills/`). Most skills auto-activate when a prompt matches their `description`; skills with `disable-model-invocation: true` (`i-have-adhd`, `grill-me`, `show-me`) load only when the user types `/name`. The per-skill list is in `docs/TRIGGERS.md`.
+This repo holds hand-written skills for managing long, multi-day sessions, plus third-party skills and whole plugins pulled from public repos. It is **dual-target**: everything deploys to both Claude Code and Copilot CLI. Most skills auto-activate when a prompt matches their `description`; skills with `disable-model-invocation: true` (`i-have-adhd`, `grill-me`, `show-me`) load only when the user types `/name`. The per-skill list is in `docs/TRIGGERS.md`.
 
-Agent context deploys at **two layers** (see `README.md` for the full explanation):
+Agent context deploys at **three layers** (see `README.md` for the user-facing explanation):
 
-1. **Skills** — a `SKILL.md` folder, symlinked into the agent skill dirs by `install.sh`. Sources: native dirs in this repo + APM deps in `apm.yml`.
-2. **Whole plugins / harnesses** — full plugins (hooks, companion tools, MCP/LSP servers) installed natively via each CLI's plugin system by `install-plugins.sh`, listed in `plugins.list`. A plain symlink cannot express these.
+1. **Own skills** — every folder under `plugin/skills/`, shipped as the `personal-skills` plugin together with its hooks. Each CLI installs it through its plugin system.
+2. **Third-party skills** — declared in `apm.yml`, fetched by APM into `.agents/skills/`, symlinked into `~/.claude/skills` and `~/.copilot/skills` by `install.sh`.
+3. **Whole third-party plugins** — full plugins (hooks, agents, MCP servers) listed in `plugins.list` and installed natively by `install-plugins.sh`. A plain symlink cannot express these.
+
+Global preferences (`config/global/AGENTS.md`) are a separate, opt-in install via `install-instructions.sh`.
 
 ## Repo layout
 
 ```
 skills/
-├─ AGENTS.md                        ← this file
-├─ README.md                        ← user-facing overview and install guide
-├─ install.sh                       ← symlink third-party skills into ~/.claude & ~/.copilot (layer 1); --check audits them
-├─ install-plugins.sh               ← install whole plugins via each CLI (layer 2)
-├─ install-instructions.sh          ← link global preferences; --check / --dry-run are read-only
-├─ config/global/AGENTS.md          ← shared cross-project preferences, NOT this repo's instructions
-├─ plugins.list                     ← whole-plugin manifest (pipe-delimited)
-├─ apm.yml                          ← APM manifest (third-party skill dependencies)
-├─ apm.lock.yaml                    ← APM lockfile (pinned commits + hashes)
-├─ .gitignore                       ← ignores apm_modules/, .agents/skills/
-├─ decision-log/SKILL.md
-├─ cinematic-static-site/SKILL.md
-├─ multi-variant-site-design/SKILL.md
-├─ staged-commit/SKILL.md
-├─ scratch-workspace-routing/SKILL.md
-├─ danish-listing-review/           ← SKILL.md + references/, scripts/, assets/, ROADMAP.md
-├─ session-carry-forward/
-│   ├─ SKILL.md
-│   └─ references/template.md      ← the carry-forward doc template
-├─ session-resume/SKILL.md
-├─ session-status/SKILL.md
-├─ plugin/                          ← the `personal-skills` plugin (skills symlinks + hooks + manifests)
-├─ VERSION                          ← single source of truth for the version (see sync-version.sh)
-├─ scripts/sync-version.sh          ← stamps VERSION into every manifest
-├─ scripts/validate-skills.sh       ← consistency checks (symlinks, frontmatter, docs, hook parity, privacy); CI runs it
-├─ docs/TRIGGERS.md                 ← what makes each skill fire (keep in sync with descriptions)
-├─ <skill>/evals/                   ← optional: trigger_set.json + evals.json (see Testing and evals)
-├─ carry-forwards/                  ← session handoff docs (output of session-carry-forward)
-└─ .agents/skills/                  ← APM-managed skills (generated, gitignored; source for all installs)
+├─ AGENTS.md                  ← this file (CLAUDE.md is a symlink to it)
+├─ README.md                  ← user-facing overview and install guide
+├─ plugin/                    ← the `personal-skills` plugin
+│   ├─ skills/<name>/         ← own skills: SKILL.md plus optional references/, scripts/, assets/, evals/
+│   ├─ hooks/                 ← run-hook.sh, session-start, session-end, hooks.json (Claude)
+│   ├─ com.github.copilot/hooks/hooks.json   ← Copilot hook config (must equal the Claude one)
+│   ├─ plugin.json            ← Copilot manifest (Agent Plugins 1.0)
+│   └─ .claude-plugin/plugin.json            ← Claude manifest
+├─ marketplace.json, .claude-plugin/marketplace.json   ← this repo as a plugin marketplace
+├─ install.sh                 ← symlink third-party skills (layer 2); --check audits them
+├─ install-plugins.sh         ← install whole plugins via each CLI (layer 3)
+├─ install-instructions.sh    ← link global preferences; --check / --dry-run are read-only
+├─ config/global/AGENTS.md    ← shared cross-project preferences, NOT this repo's instructions
+├─ plugins.list               ← whole-plugin manifest (pipe-delimited)
+├─ apm.yml, apm.lock.yaml     ← APM manifest and lockfile (pinned commits + hashes)
+├─ VERSION                    ← single source of truth for the version
+├─ scripts/
+│   ├─ sync-version.sh        ← stamps VERSION into every manifest
+│   ├─ sync-docs.sh           ← regenerates the skill tables in README.md and docs/TRIGGERS.md
+│   └─ validate-skills.sh     ← consistency checks; CI runs it
+├─ tests/*.bats               ← shell tests for installers, hooks and scripts
+├─ docs/TRIGGERS.md           ← example prompts per skill (own-skills table is generated)
+├─ carry-forwards/            ← local session handoff docs (gitignored)
+└─ .agents/skills/            ← APM-managed skills (generated, gitignored)
 ```
+
+The layout deliberately lists no individual skill: `plugin/skills/` is the list.
 
 ## Skill format
 
-Each skill is a folder with a `SKILL.md` at its root. The SKILL.md frontmatter has `name:` (must equal the folder name) and `description:` fields. The agent sees **only** `description` when deciding whether to load a skill, so it must carry the triggers: what the skill does, a "Use when …" clause with example phrases, and a "Not for … (use X)" clause for any skill it overlaps with. Keep it under 1024 characters. Add `disable-model-invocation: true` for skills that should only run on `/name`. A `references/` subdir holds supporting docs (templates, checklists, examples) that the SKILL.md can reference.
+Each skill is a folder with a `SKILL.md` at its root. The frontmatter has `name:` (must equal the folder name) and `description:`. The agent sees **only** `description` when deciding whether to load a skill, so it must carry the triggers: what the skill does, a "Use when …" clause with quoted example phrases, and a "Not for … (use X)" clause for any skill it overlaps with.
+
+Frontmatter rules, enforced by `validate-skills.sh`:
+
+- one `key: value` per line; `description` is a plain one-line value, with no quotes and no `>` / `|` block;
+- no `: ` (colon then space) and no ` #` inside the description, because both break plain YAML — rephrase instead;
+- at most 1024 characters.
+
+`sync-docs.sh` builds the README summary from the description's first sentence and the TRIGGERS row from its quoted phrases, so write the first sentence as a standalone summary and put real example prompts in double quotes.
+
+Add `disable-model-invocation: true` for skills that should only run on `/name`. A `references/` subdir holds supporting docs that the SKILL.md can link to.
+
+## Adding or changing an own skill
+
+1. Create or edit `plugin/skills/<name>/SKILL.md`. Keep it free of personal info (see **Privacy**). There is nothing to register: both CLIs discover every folder under `plugin/skills/`. Do **not** add own skills to `apm.yml`.
+2. Run `./scripts/sync-docs.sh`. It regenerates the own-skill tables in `README.md` and `docs/TRIGGERS.md`. Never edit between the `<!-- BEGIN own-skills -->` / `<!-- END own-skills -->` markers by hand.
+3. If the change is user-visible, bump the version: `./scripts/sync-version.sh <version>`.
+4. Run `./scripts/validate-skills.sh` and `bats tests/*.bats`.
+5. If the skill overlaps another, add the pair to "Known overlaps" in `docs/TRIGGERS.md` (hand-written).
+6. Test it by using one of its trigger phrases in both CLIs.
+
+Whenever you add, rename, remove or re-describe a skill in this repo, do steps 2 and 4 before reporting the work as done.
+
+Edits are never live in an installed plugin: both CLIs copy the plugin into their own cache (Claude Code keeps one copy per version under `~/.claude/plugins/cache/`). With the marketplace added from the **local checkout path**, run `plugin update personal-skills@personal-skills-marketplace` in each CLI after editing, bumping `VERSION` first if the CLI reports nothing to update, then restart the session. Added from **GitHub**, edits need push + `plugin update`. A plugin can also be installed but **disabled**; check `plugin list`.
+
+To try one own skill without the plugin, `./install.sh <skill-name> --claude` symlinks just that skill. Remove the link afterwards: alongside the plugin it loads twice (`--check` reports DUPLICATE).
 
 ## Install
 
 ```sh
-./install.sh            # symlink third-party (APM) skills into ~/.claude/skills/
-./install.sh --claude --copilot  # both CLIs
-./install.sh --check    # read-only audit of both skill dirs (missing / broken / copy / duplicate)
+./install.sh                    # symlink third-party (APM) skills into both CLIs
+./install.sh --claude           # only one CLI (or --copilot)
+./install.sh --check            # read-only audit of both skill dirs
 ./install.sh --dry-run
-./install.sh --with-plugins  # after skills, also run install-plugins.sh (opt-in convenience)
-./install.sh --claude --copilot --with-instructions  # opt-in global instruction links
-./install.sh --claude --copilot --with-plugins --with-instructions  # dotfiles bootstrap
-bash install-instructions.sh --claude --copilot --dry-run
-bash install-instructions.sh --claude --check
-bash install-instructions.sh --copilot --check
-bash install-instructions.sh --check  # audit global instruction links only
-./install-plugins.sh    # install whole plugins/harnesses via each CLI (plugins.list)
+./install.sh --with-plugins --with-instructions   # everything in one go
+./install-plugins.sh            # whole plugins from plugins.list
+./install-instructions.sh       # global preferences (opt-in)
 ```
 
-`install.sh` automatically runs `apm install` if APM dependencies haven't been fetched yet. Existing real dirs at the target are backed up to `<name>.bak-<YYYYMMDD-HHMMSS>` before being replaced; existing symlinks are silently re-pointed.
+Shared conventions across the three installers: default to both CLIs, `--claude` / `--copilot` narrow that, `--dry-run` never writes, and anything replaced is moved to a `.backup.*` sibling. Keep new installer code consistent with these.
 
-`install-plugins.sh` is separate and idempotent: it defaults to both CLIs, skips any target whose CLI is not on `PATH`, and is safe to re-run. Full machine bootstrap order:
+- `install.sh` runs `apm install` first if dependencies have not been fetched. An existing symlink at the target is re-pointed; a real directory is moved to `<name>.backup.<YYYYMMDD-HHMMSS>`.
+- `install-plugins.sh` skips any CLI not on `PATH` and is safe to re-run.
+- `install-instructions.sh` links `config/global/AGENTS.md` into `${CLAUDE_CONFIG_DIR:-$HOME/.claude}/CLAUDE.md` and `${COPILOT_HOME:-$HOME/.copilot}/copilot-instructions.md`. It refuses directories and leaves correct links untouched. `install.sh --with-instructions` forwards the CLI selection and `--check` / `--dry-run`; a custom skill `--target` does not redirect it. Never link the root `AGENTS.md` globally.
+
+Full machine bootstrap:
 
 ```sh
-git pull && apm install && ./install.sh --claude --copilot && ./install-plugins.sh
+git pull && apm install && ./install.sh && ./install-plugins.sh
 ```
 
-Global preferences are a separate, opt-in install, not plugin content. `install-instructions.sh`
-links `config/global/AGENTS.md` into `${CLAUDE_CONFIG_DIR:-$HOME/.claude}/CLAUDE.md`
-and `${COPILOT_HOME:-$HOME/.copilot}/copilot-instructions.md` (both by default). It backs up
-existing files/links to unique `.backup.*` siblings, refuses directories, and leaves correct
-links untouched. `install.sh --with-instructions` follows its CLI selections and forwards
-`--check` / `--dry-run`; custom skill `--target` does not redirect global instructions.
-Never link the root `AGENTS.md` globally. Tests: `bats tests/install-instructions.bats`.
+## APM (third-party skills)
 
-## APM (Agent Package Manager)
-
-Third-party skills from `anthropics/skills` are declared in `apm.yml` and resolved by [APM](https://github.com/microsoft/apm). Running `apm install` fetches them into `.agents/skills/` (gitignored), which `install.sh` symlinks from for both Claude and Copilot targets. The lockfile `apm.lock.yaml` pins exact commits and content hashes.
+Third-party skills are declared in `apm.yml` and resolved by [APM](https://github.com/microsoft/apm). `apm install` fetches them into `.agents/skills/` (gitignored); `apm.lock.yaml` pins exact commits and content hashes.
 
 Currently managed via APM:
 - `frontend-design`, `mcp-builder`, `pdf`, `pptx`, `skill-creator`, `xlsx` (anthropics/skills)
@@ -89,45 +105,38 @@ Currently managed via APM:
 - `grill-me` (mattpocock/skills)
 - `show-me`, `improve-claude-md` (humanlayer/skills)
 
-To update these to the latest upstream: `apm update`.
+To update: `apm update`, then read the diff of `.agents/skills/` before committing the new lockfile. These files are prompt content that loads into sessions.
 
-## Working on a skill
+## Whole plugins
 
-Third-party skills in `~/.claude/skills/` and `~/.copilot/skills/` are symlinks into `.agents/skills/`, so `apm update` takes effect without re-installing. Own skills reach both CLIs through the installed `personal-skills` plugin. Whether edits are live depends on where the marketplace was added from: added from the **local checkout path**, the plugin is loaded in place ("Live Plugin" in `copilot plugin list`) and edits apply on the next session; added from **GitHub**, the CLI copies it into its plugin cache and edits need push + `plugin update`. A live plugin can still be **disabled**; check the status in `plugin list`.
-
-When adding a new **own** skill (ships via the `personal-skills` plugin, so it reaches both Claude and Copilot):
-1. Create `<skill-name>/SKILL.md` with `name:`, `description:`, and the skill body. Keep it free of personal info (see **Privacy** below).
-2. Symlink it into the plugin so both CLIs pick it up:
-   `ln -s ../../<skill-name> plugin/skills/<skill-name>`. Do **not** add own skills to `apm.yml` — that's for third-party skills only.
-3. Add a one-line entry (with its Invocation column) to the appropriate skills table in `README.md`, and its triggers to `docs/TRIGGERS.md`.
-4. Run `./scripts/validate-skills.sh`, then commit. CI (`.github/workflows/validate.yml`) lints the manifests, runs `sync-version.sh --check`, and runs the same `validate-skills.sh`: every own skill is symlinked into `plugin/skills/`, `name:` equals the folder, the description is at most 1024 characters, the skill is listed in `README.md` and `docs/TRIGGERS.md`, the two hook configs are identical, and no tracked file holds a home path.
-5. Test by triggering it with one of its stated trigger phrases in both CLIs, and run `./install.sh --check`.
-
-To test an own skill live while editing it, symlink just that one skill (`./install.sh <skill-name> --claude`), and remove the link afterwards: leaving it alongside the plugin loads the skill twice (`--check` reports it as DUPLICATE).
-
-When adding a whole plugin (not just a skill):
 1. Add a pipe-delimited line to `plugins.list` (`marketplace_repo | marketplace_name | plugin | targets | description`).
-2. Run `./install-plugins.sh` (or `--dry-run` to preview the CLI commands first).
-3. Do **not** also add the plugin's individual skills to `apm.yml` — the whole plugin already ships them, and duplicating causes conflicting copies.
+2. Run `./install-plugins.sh` (or `--dry-run` to preview the CLI commands).
+3. Do **not** also declare the plugin, its skills or its MCP server in `apm.yml`. The plugin already ships them, and declaring both gives conflicting copies.
+
+Third-party plugins install at their marketplace's current version; there is no ref to pin in `plugins.list`. Read a plugin's hooks and MCP config before adding it.
 
 ## Testing and evals
 
-The `skill-creator` skill (managed via APM) can run evals against a skill. Convention per skill:
+- `bats tests/*.bats` — installers, hooks, `sync-version.sh`, `validate-skills.sh`. Tests run against temp dirs and a fake `HOME`; they never touch live config.
+- `./scripts/validate-skills.sh` — layout, frontmatter, generated docs, hook parity, privacy.
+- `shellcheck -S warning` on every script; CI fails on warnings.
 
-- `<skill>/evals/trigger_set.json` — `[{ "query": "...", "should_trigger": true|false }]`, roughly half near-misses. Measures whether `description` fires correctly.
-- `<skill>/evals/evals.json` — `{ skill_name, evals: [{ id, prompt, expected_output, expectations[] }] }`. Measures whether the skill does the right thing.
+The `skill-creator` skill (managed via APM) can run evals against a skill. Convention per skill, under `plugin/skills/<name>/evals/`:
 
-`staged-commit` has both; `danish-listing-review` has `evals.json`; `scratch-workspace-routing`, `decision-log` and the three `session-*` skills have `trigger_set.json`. Manual-only skills should never trigger from natural language, so their trigger sets are all `false` plus a slash-invocation check.
+- `trigger_set.json` — `[{ "query": "...", "should_trigger": true|false }]`, roughly half near-misses. Measures whether `description` fires correctly.
+- `evals.json` — `{ skill_name, evals: [{ id, prompt, expected_output, expectations[] }] }`. Measures whether the skill does the right thing.
+
+Manual-only skills should never trigger from natural language, so their trigger sets are all `false` plus a slash-invocation check.
 
 ## Keeping Claude and Copilot in sync
 
-One repo serves both CLIs; several files must move together or the two targets drift:
+One repo serves both CLIs; these must move together or the two targets drift:
 
-- **Own skills** ship through `plugin/skills/` symlinks — add/rename/remove the symlink whenever you add/rename/remove an own skill. Both CLIs read the same `plugin/skills/`, so a symlink change updates both at once.
-- **Version** lives only in `VERSION`. After bumping it (or adding a manifest), run `./scripts/sync-version.sh <version>` to stamp it into `apm.yml`, `marketplace.json`, `.claude-plugin/marketplace.json`, `plugin/plugin.json`, and `plugin/.claude-plugin/plugin.json`. CI runs `--check` and fails on drift.
-- **Plugin manifests** come in pairs — the Copilot manifest (`plugin/plugin.json`, Agent Plugins 1.0) and the Claude manifest (`plugin/.claude-plugin/plugin.json`). Edit both. Same for the two `marketplace.json` files.
-- **Hooks** come in pairs — `plugin/hooks/hooks.json` (Claude) and `plugin/com.github.copilot/hooks/hooks.json` (Copilot), both invoking the shared scripts under `plugin/hooks/`. Change them together.
-- **README** is the user-facing index — update its skills tables and install docs whenever skills, flags, or the two-layer model change. `docs/TRIGGERS.md` moves with every `description` change.
+- **Version** lives only in `VERSION`. `./scripts/sync-version.sh <version>` stamps it into `apm.yml`, both `marketplace.json` files and both plugin manifests. CI runs `--check`.
+- **Plugin manifests** come in pairs — `plugin/plugin.json` (Copilot) and `plugin/.claude-plugin/plugin.json` (Claude). Edit both. Same for the two `marketplace.json` files.
+- **Hooks** come in pairs — `plugin/hooks/hooks.json` (Claude) and `plugin/com.github.copilot/hooks/hooks.json` (Copilot), both invoking the shared scripts under `plugin/hooks/`. They must be byte-identical; CI checks.
+- **Skill bodies** must not name tools that exist in only one CLI. Describe the capability ("the task list tool, if this CLI has one").
+- **Docs** — the skill tables are generated; the rest of `README.md` (install docs, flags, the layer model) is hand-written and must be updated with the code.
 
 ## Privacy — no personal info in committed files
 
@@ -136,12 +145,12 @@ This repo is public. Never commit personal or environment-specific data:
 - No absolute home paths (`/Users/<name>`, `/home/<name>`), usernames, emails, hostnames, or IPs. Use repo-relative paths and generic placeholders.
 - No employer/client/org names or internal project names in skills, examples, or docs. Examples must be fictional (e.g. `acme/widget-service`).
 - No secrets, tokens, API keys, or `.env` values — ever.
-- `carry-forwards/` stays **local and untracked** (it captures real session state); do not commit it. It is in `.gitignore` here, and `session-carry-forward` adds it to `.git/info/exclude` in other repos.
-- Before committing, scan the diff for the above. The `staged-commit` skill does this automatically.
+- `carry-forwards/` stays **local and untracked** (it captures real session state). It is in `.gitignore` here, and `session-carry-forward` adds it to `.git/info/exclude` in other repos.
+- Before committing, scan the diff for the above. `validate-skills.sh` catches home paths; the `staged-commit` skill scans for the rest.
 
 ## Conventions
 
-- Trigger phrases belong in the `description` (that is all the agent sees when choosing). A body `## When to invoke` section is optional extra detail, never the only place triggers live. Summaries go in `README.md` and `docs/TRIGGERS.md`.
+- Trigger phrases belong in the `description` (that is all the agent sees when choosing). A body `## When to invoke` section is optional extra detail, never the only place triggers live.
 - Skills that write files: `session-carry-forward`, `decision-log`, `danish-listing-review` (report files), `multi-variant-site-design` and `cinematic-static-site` (site files), and `staged-commit` (commits, never pushes). Everything else is read-only.
 - Output paths default to inside the calling repo so artifacts live with the work they describe.
 - Absolute dates (YYYY-MM-DD) only — relative phrasing breaks across sessions.
@@ -149,11 +158,12 @@ This repo is public. Never commit personal or environment-specific data:
 
 ## Gotchas & tooling notes
 
-- **`plugin marketplace add <repo>` returns non-zero if the marketplace is already registered.** Under `set -euo pipefail` this aborts `install-plugins.sh` on any re-run — which is why it wraps that step as non-fatal (`run_soft`). `plugin install` itself is idempotent (a re-install just refreshes).
-- **`install.sh` source vs destination are different dirs.** The repo-relative *source* is `.agents/skills` (APM-generated); the *destination* is `$HOME/.claude/skills` / `$HOME/.copilot/skills`. Only the source is `.agents/skills`; the destinations are unchanged, so Claude Code and Copilot still receive symlinks.
-- **One `.agents/skills` source is enough.** `apm install`'s `.claude/skills` and `.agents/skills` outputs are byte-identical for plain `SKILL.md` skills (verified with `diff -rq`), so `apm.yml` targets only `copilot`. Caveat: a skill shipping agent-specific files could differ per target — none here do.
+- **`plugin marketplace add <repo>` returns non-zero if the marketplace is already registered.** Under `set -euo pipefail` this would abort `install-plugins.sh` on any re-run, which is why it wraps that step as non-fatal (`run_soft`). `plugin install` itself is idempotent.
+- **`install.sh` source vs destination are different dirs.** The repo-relative *source* is `.agents/skills` (APM-generated); the *destination* is `$HOME/.claude/skills` / `$HOME/.copilot/skills`.
+- **One `.agents/skills` source is enough.** `apm install`'s `.claude/skills` and `.agents/skills` outputs are byte-identical for plain `SKILL.md` skills, so `apm.yml` targets only `copilot`. Caveat: a skill shipping agent-specific files could differ per target — none here do.
+- **The lockfile is tied to the APM version that wrote it.** An older `apm` can report a "content hash mismatch" on a package whose pinned commit and per-file hashes are unchanged, because the bundle hash is computed differently. Check `apm --version` against `apm_version` in `apm.lock.yaml` before treating it as tampering, and do not run `apm install --update` just to get past it.
+- **`install.sh --check` only audits APM skills that have been fetched.** After a partial `apm install` it can read "All good" while skills in `apm.yml` are missing from `.agents/skills/`.
+- **`--check` statuses:** `WRONG` is a link into a different checkout, `INVALID` a link whose target has no `SKILL.md`, `COPY` a real directory that never picks up repo changes, `DUPLICATE` an own skill linked alongside the plugin.
 - **Copilot CLI ignores manual-only skills when the model looks them up.** Skills with `disable-model-invocation: true` work when the user types `/name` at the start of a prompt, but not via "use the X skill" (github/copilot-cli#4438, open as of 2026-09-29).
 - **VS Code reads `~/.claude/skills` as well as `~/.copilot/skills`.** A skill linked into both may be listed twice in VS Code; the CLIs are unaffected.
-- **A copied skill dir goes stale silently.** A real directory in `~/.claude/skills` or `~/.copilot/skills` (instead of a symlink) never picks up repo changes and nothing warns you; `./install.sh --check` flags it as COPY, or DUPLICATE if the plugin also ships it.
-- `install.sh --check` also requires a linked `SKILL.md` and the expected resolved source directory; wrong-source links report WRONG, invalid targets report INVALID. Audit tests: `bats tests/install-audit.bats`.
 - **Plugin CLI verbs** (both `copilot` and `claude`): `plugin list|install|uninstall|update|enable|disable`, `plugin marketplace add|remove`. `uninstall` takes one name at a time (`plugin` or `plugin@marketplace`).
