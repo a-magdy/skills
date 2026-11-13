@@ -22,11 +22,17 @@ jobs:
 
       - name: Shell syntax check
         run: |
-          for s in install.sh install-plugins.sh scripts/*.sh \
+          for s in install.sh install-instructions.sh install-plugins.sh scripts/*.sh \
                    plugin/hooks/run-hook.sh plugin/hooks/session-start plugin/hooks/session-end; do
             [ -f "$s" ] || continue
             bash -n "$s" && echo "OK  $s"
           done
+
+      - name: Install Bats
+        run: sudo apt-get update && sudo apt-get install --no-install-recommends -y bats
+
+      - name: Run shell tests
+        run: bats tests/*.bats
 
       - name: Version consistency
         run: ./scripts/sync-version.sh --check
