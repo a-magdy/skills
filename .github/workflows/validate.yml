@@ -25,7 +25,7 @@ jobs:
 
       - name: Shell lint (syntax + shellcheck)
         run: |
-          scripts="install.sh install-instructions.sh install-plugins.sh scripts/*.sh
+          scripts="install.sh install-plugins.sh scripts/*.sh
                    plugin/hooks/run-hook.sh plugin/hooks/session-start plugin/hooks/session-end"
           for s in $scripts; do bash -n "$s" && echo "OK  $s"; done
           shellcheck -S warning $scripts

@@ -68,8 +68,8 @@ add_marketplace() {
 }
 
 # This repo is itself a marketplace. Its own plugin is registered from this
-# checkout rather than from GitHub, so the plugin, the symlinked third-party
-# skills and the global instructions all come from the same clone.
+# checkout rather than from GitHub, so the plugin and the symlinked
+# third-party skills come from the same clone.
 OWN_MARKETPLACE=""
 if [ -f "$REPO_ROOT/marketplace.json" ]; then
   OWN_MARKETPLACE="$(sed -n 's/^[[:space:]]*"name"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' "$REPO_ROOT/marketplace.json" | head -n 1)"
