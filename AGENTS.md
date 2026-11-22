@@ -8,7 +8,7 @@ Agent context deploys at **three layers** (see `README.md` for the user-facing e
 2. **Third-party skills** — declared in `apm.yml`, fetched by APM into `.agents/skills/`, symlinked into `~/.claude/skills` and `~/.copilot/skills` by `install.sh`.
 3. **Whole third-party plugins** — full plugins (hooks, agents, MCP servers) listed in `plugins.list` and installed natively by `install-plugins.sh`. A plain symlink cannot express these.
 
-Global preferences (`config/global/AGENTS.md`) are a separate, opt-in install via `install-instructions.sh`.
+Global agent preferences (the user-level `CLAUDE.md` / `copilot-instructions.md`) are not part of this repo; keep personal preferences out of it.
 
 ## Repo layout
 
@@ -25,8 +25,6 @@ skills/
 ├─ marketplace.json, .claude-plugin/marketplace.json   ← this repo as a plugin marketplace
 ├─ install.sh                 ← symlink third-party skills (layer 2); --check audits them
 ├─ install-plugins.sh         ← install whole plugins via each CLI (layer 3)
-├─ install-instructions.sh    ← link global preferences; --check / --dry-run are read-only
-├─ config/global/AGENTS.md    ← shared cross-project preferences, NOT this repo's instructions
 ├─ plugins.list               ← whole-plugin manifest (pipe-delimited)
 ├─ apm.yml, apm.lock.yaml     ← APM manifest and lockfile (pinned commits + hashes)
 ├─ VERSION                    ← single source of truth for the version
@@ -78,21 +76,19 @@ To try one own skill without the plugin, `./install.sh <skill-name> --claude` sy
 ./install.sh --claude           # only one CLI (or --copilot)
 ./install.sh --check            # read-only audit of both skill dirs
 ./install.sh --dry-run
-./install.sh --with-plugins --with-instructions   # everything in one go
+./install.sh --with-plugins     # everything in one go
 ./install-plugins.sh            # whole plugins from plugins.list
-./install-instructions.sh       # global preferences (opt-in)
 ```
 
-Shared conventions across the three installers: default to both CLIs, `--claude` / `--copilot` narrow that, `--dry-run` never writes, and anything replaced is moved to a `.backup.*` sibling. Keep new installer code consistent with these.
+Shared conventions across both installers: default to both CLIs, `--claude` / `--copilot` narrow that, `--dry-run` never writes, and anything replaced is moved to a `.backup.*` sibling. Keep new installer code consistent with these.
 
 - `install.sh` runs `apm install` first if any skill declared in `apm.yml` is missing from `.agents/skills/`, and exits 1 if APM is not on `PATH` (unless skills were named explicitly). An existing symlink at the target is re-pointed; a real directory is moved to `<name>.backup.<YYYYMMDD-HHMMSS>`.
 - `install-plugins.sh` skips any CLI not on `PATH` and is safe to re-run.
-- `install-instructions.sh` links `config/global/AGENTS.md` into `${CLAUDE_CONFIG_DIR:-$HOME/.claude}/CLAUDE.md` and `${COPILOT_HOME:-$HOME/.copilot}/copilot-instructions.md`. It refuses directories and leaves correct links untouched. `install.sh --with-instructions` forwards the CLI selection and `--check` / `--dry-run`; a custom skill `--target` does not redirect it. Never link the root `AGENTS.md` globally.
 
 Full machine bootstrap:
 
 ```sh
-git pull && ./install.sh --with-plugins --with-instructions
+git pull && ./install.sh --with-plugins
 ```
 
 ## APM (third-party skills)
@@ -117,7 +113,7 @@ Third-party plugins install at their marketplace's current version; there is no 
 
 ## Testing and evals
 
-- `bats tests/*.bats` — all three installers, hooks, `sync-version.sh`, `validate-skills.sh`. Tests run against temp dirs, a fake `HOME` and stub CLIs; they never touch live config or the network.
+- `bats tests/*.bats` — both installers, hooks, `sync-version.sh`, `validate-skills.sh`. Tests run against temp dirs, a fake `HOME` and stub CLIs; they never touch live config or the network.
 - Maintainer notes about a skill (roadmaps, known gaps) go in `docs/`, not in the skill folder: everything under `plugin/skills/<name>/` ships to users.
 - `./scripts/validate-skills.sh` — layout, frontmatter, generated docs, hook parity, privacy.
 - `shellcheck -S warning` on every script; CI fails on warnings.

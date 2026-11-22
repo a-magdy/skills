@@ -7,7 +7,6 @@ Agent skills and the tooling to install them, for both [Claude Code](https://doc
 | **Own skills**, shipped as the `personal-skills` plugin with session hooks | [`plugin/`](./plugin/) | each CLI's `plugin install` |
 | **Third-party skills**, pinned by commit and content hash | [`apm.yml`](./apm.yml) + [`apm.lock.yaml`](./apm.lock.yaml) | [`install.sh`](./install.sh) |
 | **Whole third-party plugins** (hooks, agents, MCP servers) | [`plugins.list`](./plugins.list) | [`install-plugins.sh`](./install-plugins.sh) |
-| **Global preferences** shared by both CLIs | [`config/global/AGENTS.md`](./config/global/AGENTS.md) | [`install-instructions.sh`](./install-instructions.sh) |
 
 The own skills centre on long, multi-day sessions: keeping track of state, handing context to the next session, and recording decisions where they belong. A few standalone skills (commits, site design, Danish property due diligence) ship alongside.
 
@@ -60,14 +59,14 @@ Prerequisites: [APM](https://github.com/microsoft/apm) (`brew install microsoft/
 
 ```sh
 git clone <this-repo-url> && cd skills
-./install.sh --with-plugins --with-instructions   # everything, both CLIs
-./install.sh --with-instructions --check          # audit skills and instruction links
-claude plugin list && copilot plugin list         # audit plugins
+./install.sh --with-plugins                 # everything, both CLIs
+./install.sh --check                        # audit skills
+claude plugin list && copilot plugin list   # audit plugins
 ```
 
-That one command fetches the third-party skills with `apm install`, symlinks them, links the global preferences and installs the plugins. It is safe to re-run, and it is what a machine bootstrap should call. Each layer can also be installed on its own (below); drop `--with-instructions` if you do not want the [global preferences](#global-instructions).
+That one command fetches the third-party skills with `apm install`, symlinks them and installs the plugins. It is safe to re-run, and it is what a machine bootstrap should call. Each layer can also be installed on its own (below).
 
-All three installers follow the same conventions: they default to both CLIs, accept `--claude` / `--copilot` to narrow that, support `--dry-run`, and back up anything they replace to a `.backup.*` sibling.
+Both installers follow the same conventions: they default to both CLIs, accept `--claude` / `--copilot` to narrow that, support `--dry-run`, and back up anything they replace to a `.backup.*` sibling.
 
 ## Install
 
@@ -116,7 +115,6 @@ To move to the latest upstream versions, run `apm update` and read the diff of `
 | `--dry-run` | preview the plan without making changes (no `apm install` is run) |
 | `--check` | read-only audit of both skill directories; exits 1 on problems |
 | `--with-plugins` | afterwards, also run `install-plugins.sh` |
-| `--with-instructions` | also link the global preferences for the selected CLIs |
 | _positional args_ | install only those skills (e.g. `./install.sh i-have-adhd grill-me`) |
 | `-h`, `--help` | full help text |
 
@@ -144,25 +142,6 @@ obra/superpowers-marketplace | superpowers-marketplace | superpowers | copilot,c
 ```
 
 The script is safe to re-run, skips any CLI that is not on `PATH`, leaves already-registered marketplaces alone, and exits non-zero only if an install command fails. Third-party plugins install at their marketplace's current version; neither CLI offers a way to pin one from this file, so review a plugin's hooks before adding it here.
-
-### Global instructions
-
-Shared cross-project preferences live in [`config/global/AGENTS.md`](./config/global/AGENTS.md). They are separate from this repository's root `AGENTS.md`, which describes maintaining this repo and must not be installed globally.
-
-```sh
-./install-instructions.sh             # link for both CLIs
-./install-instructions.sh --check     # audit only
-./install-instructions.sh --dry-run   # preview
-
-./install.sh --with-instructions      # or together with the skills
-```
-
-| Destination | Source |
-|---|---|
-| `${CLAUDE_CONFIG_DIR:-~/.claude}/CLAUDE.md` | `config/global/AGENTS.md` |
-| `${COPILOT_HOME:-~/.copilot}/copilot-instructions.md` | `config/global/AGENTS.md` |
-
-Existing files and symlinks (including broken ones) are moved to unique sibling `.backup.*` paths. Directories are refused; correct links are left untouched. Dry-run and check modes never write files. Through `install.sh`, the installer follows the `--claude` / `--copilot` selection; a custom skill `--target` does not change instruction paths. Keep the clone where it was installed, or rerun after moving it. This does not configure VS Code's separate user instructions.
 
 ### Where each tool looks for skills
 
@@ -206,7 +185,6 @@ plugin/                    the personal-skills plugin
 ├─ skills/<name>/SKILL.md  own skills: one folder each, discovered automatically
 ├─ hooks/                  SessionStart / SessionEnd scripts and Claude's hooks.json
 └─ …                       the Claude and Copilot manifests
-config/global/AGENTS.md    global preferences
 scripts/                   sync-version.sh, sync-docs.sh, validate-skills.sh
 tests/                     bats tests for the installers, hooks and scripts
 docs/TRIGGERS.md           example prompts per skill
@@ -219,7 +197,7 @@ docs/TRIGGERS.md           example prompts per skill
 
 `./scripts/validate-skills.sh` checks the result (frontmatter, generated tables, hook parity, no personal paths) and `bats tests/*.bats` runs the shell tests; CI runs both. Maintainer detail is in [`AGENTS.md`](./AGENTS.md).
 
-**Versioning:** the [`VERSION`](./VERSION) file is the single source of truth. `./scripts/sync-version.sh 1.2.0` sets it and stamps every manifest; `--check` verifies they match.
+**Versioning:** the [`VERSION`](./VERSION) file is the single source of truth. `./scripts/sync-version.sh 1.3.0` sets it and stamps every manifest; `--check` verifies they match.
 
 ## Design notes
 

@@ -10,7 +10,6 @@
 #   ./install.sh session-status           # install only specific skill(s), own or APM
 #   ./install.sh --dry-run                # show what would happen, don't do it
 #   ./install.sh --with-plugins           # after skills, also run install-plugins.sh (whole plugins)
-#   ./install.sh --with-instructions      # also link global preferences for selected CLI targets
 #   ./install.sh --check                  # report missing / broken / duplicate skills, change nothing
 #   ./install.sh -h | --help              # show this help
 #
@@ -48,7 +47,6 @@ MODE="symlink"
 DRY_RUN=false
 CHECK=false
 WITH_PLUGINS=false
-WITH_INSTRUCTIONS=false
 PLUGIN_ARGS=()
 SKILLS_TO_INSTALL=()
 
@@ -73,7 +71,6 @@ while [[ $# -gt 0 ]]; do
     --dry-run) DRY_RUN=true; shift ;;
     --check)   CHECK=true; shift ;;
     --with-plugins) WITH_PLUGINS=true; shift ;;
-    --with-instructions) WITH_INSTRUCTIONS=true; shift ;;
     -h|--help) print_help; exit 0 ;;
     --) shift; SKILLS_TO_INSTALL+=("$@"); break ;;
     -*) echo "unknown flag: $1" >&2; exit 2 ;;
@@ -81,30 +78,10 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
-# Default to both CLIs when no target flag was given, like install-plugins.sh
-# and install-instructions.sh.
+# Default to both CLIs when no target flag was given, like install-plugins.sh.
 if [ ${#TARGET_DIRS[@]} -eq 0 ]; then
   TARGET_DIRS=("$CLAUDE_TARGET" "$COPILOT_TARGET")
   TARGET_APM_SRCS=(".agents/skills" ".agents/skills")
-fi
-
-INSTRUCTIONS_RC=0
-# Global instructions use CLI config roots, not a custom skill --target directory.
-if $WITH_INSTRUCTIONS; then
-  if [ ${#PLUGIN_ARGS[@]} -eq 0 ]; then
-    INSTRUCTION_ARGS=(--claude --copilot)
-  else
-    INSTRUCTION_ARGS=("${PLUGIN_ARGS[@]}")
-  fi
-  if $CHECK; then
-    INSTRUCTION_ARGS+=("--check")
-  elif $DRY_RUN; then
-    INSTRUCTION_ARGS+=("--dry-run")
-  fi
-  bash "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/install-instructions.sh" "${INSTRUCTION_ARGS[@]}" || INSTRUCTIONS_RC=$?
-  # In --check mode, carry on to the skill audit and fail at the end.
-  if [ "$INSTRUCTIONS_RC" -ne 0 ] && ! $CHECK; then exit "$INSTRUCTIONS_RC"; fi
-  echo
 fi
 
 # ---- Discover skills ----------------------------------------------------------
@@ -269,16 +246,13 @@ if $CHECK; then
     done
     echo
   done
-  if [ "$INSTRUCTIONS_RC" -ne 0 ]; then
-    echo "Global instruction links need fixing: ./install-instructions.sh"
-  fi
   if [ "$problems" -eq 0 ]; then
     echo "Skills: all good."
   else
     echo "$problems problem(s). Fix: ./install.sh --claude --copilot (and remove any COPY/DUPLICATE dirs)."
   fi
   echo 'Plugins are not checked here: run "claude plugin list" and "copilot plugin list".'
-  [ "$problems" -eq 0 ] && [ "$INSTRUCTIONS_RC" -eq 0 ]
+  [ "$problems" -eq 0 ]
   exit $?
 fi
 
