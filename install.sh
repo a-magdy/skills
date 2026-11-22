@@ -132,16 +132,17 @@ unfetched_apm() {
 
 UNFETCHED="$(unfetched_apm | tr '\n' ' ')"
 if ! $CHECK && [ -n "$UNFETCHED" ]; then
-  if ! command -v apm &>/dev/null; then
+  if $DRY_RUN; then
+    echo "would run apm install to fetch: $UNFETCHED(skipped in dry run)"
+    command -v apm &>/dev/null || echo "note: APM is not on PATH; a real run needs it (brew install microsoft/apm/apm)"
+    echo
+  elif ! command -v apm &>/dev/null; then
     # Naming skills explicitly (e.g. an own skill) does not need APM.
     if [ ${#SKILLS_TO_INSTALL[@]} -eq 0 ]; then
       printf '%s\n' "APM is not on PATH, so the third-party skills in apm.yml cannot be fetched." \
         "Install it (brew install microsoft/apm/apm), then rerun." >&2
       exit 1
     fi
-  elif $DRY_RUN; then
-    echo "would run apm install to fetch: $UNFETCHED(skipped in dry run)"
-    echo
   else
     echo "Running apm install to fetch: $UNFETCHED"
     (cd "$REPO_ROOT" && apm install)
@@ -196,6 +197,10 @@ fi
 # Pass skill names explicitly to install specific skills (own or APM).
 if [ ${#SKILLS_TO_INSTALL[@]} -eq 0 ]; then
   SKILLS_TO_INSTALL=(${APM_SKILLS[@]+"${APM_SKILLS[@]}"})
+  # A dry run before the first fetch plans from apm.yml instead.
+  if $DRY_RUN && [ -n "$UNFETCHED" ]; then
+    SKILLS_TO_INSTALL=(${DECLARED_APM[@]+"${DECLARED_APM[@]}"})
+  fi
 fi
 if [ ${#SKILLS_TO_INSTALL[@]} -eq 0 ]; then
   echo "no third-party skills to install (apm.yml declares none)" >&2
@@ -302,7 +307,12 @@ for ti in "${!TARGET_DIRS[@]}"; do
   $DRY_RUN || mkdir -p "$TARGET"
 
   for skill in "${SKILLS_TO_INSTALL[@]}"; do
-    if ! src="$(skill_source "$skill")"; then
+    if ! src="$(skill_source "$skill" 2>/dev/null)"; then
+      if $DRY_RUN && [[ " $UNFETCHED" == *" $skill "* ]]; then
+        echo "would fetch and $MODE: $skill"
+        installed=$((installed+1))
+        continue
+      fi
       echo "skip: $skill (no SKILL.md found under $APM_SRC_REL)" >&2
       skipped=$((skipped+1))
       continue
