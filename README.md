@@ -56,16 +56,17 @@ The plugin also ships two hooks ([`plugin/hooks/`](./plugin/hooks/)), both read-
 
 ## Quick start
 
-Prerequisites: [APM](https://github.com/microsoft/apm) (`brew install microsoft/apm/apm`) and whichever of the `claude` and `copilot` CLIs you use, on `PATH`.
+Prerequisites: [APM](https://github.com/microsoft/apm) with `install --frozen` support (verified with 0.35.1; `brew install microsoft/apm/apm`), Python 3.9+, and both `claude` and `copilot` CLIs on `PATH` for full recovery. Authenticate the CLIs separately; credentials do not belong in this repository.
 
 ```sh
 git clone <this-repo-url> && cd skills
-./install.sh --with-plugins                 # everything, both CLIs
-./install.sh --check                        # audit skills
-claude plugin list && copilot plugin list   # audit plugins
+bash ./install.sh --claude --copilot --with-plugins
+bash ./install.sh --claude --copilot --with-plugins --check
 ```
 
-That one command fetches the third-party skills with `apm install`, symlinks them and installs the plugins. It is safe to re-run, and it is what a machine bootstrap should call. Each layer can also be installed on its own (below).
+The first command is the canonical fresh-Mac recovery command: it reconciles third-party skills with `apm install --frozen` on every install, symlinks them and installs plugins. The second audits all layers, including expected plugin identity, enabled state and marketplace source. Add `--dry-run` to the first command for an offline preview; neither preview nor check runs APM, fetches dependencies, changes CLI configuration or writes generated files. A check uses only native CLI list commands and fails rather than guessing when a CLI or its JSON inventory is unavailable.
+
+Recovery is not an upstream update: it never runs `apm update` or changes the committed lockfile. Missing APM, a missing/inconsistent lock, unavailable dependencies or incompatible APM versions are actionable failures, even with populated generated directories. An explicitly named own skill does not require APM. Each layer can also be installed separately (below). Install mode retains the existing behavior of skipping absent plugin CLIs; the full check is deliberately stricter and requires both selected clients.
 
 Both installers follow the same conventions: they default to both CLIs, accept `--claude` / `--copilot` to narrow that, support `--dry-run`, and back up anything they replace to a `.backup.*` sibling.
 
@@ -73,7 +74,7 @@ Both installers follow the same conventions: they default to both CLIs, accept `
 
 ### Own skills: the plugin
 
-This repo is itself a plugin marketplace (see [`marketplace.json`](./marketplace.json)). `install-plugins.sh` registers that marketplace from **this checkout**, so the plugin comes from the same clone as everything else, and runs `plugin update` for it on every run. To install from GitHub without a clone:
+This repo is itself a plugin marketplace (see [`marketplace.json`](./marketplace.json)). By default, `install-plugins.sh` uses the **GitHub source in `plugins.list`**, keeping published plugin consumption separate from custom development. It runs `plugin update` for this repo's plugin on every install; third-party plugins are only installed. To install the published plugin without a clone:
 
 ```sh
 # Copilot CLI
@@ -85,13 +86,15 @@ claude plugin marketplace add a-magdy/skills
 claude plugin install personal-skills@personal-skills-marketplace
 ```
 
-With the marketplace registered from the checkout, Copilot CLI loads the plugin live, so edits apply on the next session. Claude Code copies it into a per-version cache, so after editing or pulling run `./install-plugins.sh` (or `claude plugin update personal-skills@personal-skills-marketplace`) and restart. A marketplace that is already registered is kept as it is, including one added from GitHub; remove it first to switch.
+For local custom-skill development, explicitly run `./install-plugins.sh --local` and audit with `./install-plugins.sh --local --check`. This selects the current checkout for the own marketplace only. Copilot CLI loads local plugins live on the next session; Claude Code copies them into a per-version cache, so bump `VERSION`, rerun the local installer after edits and restart.
+
+An existing marketplace registration is **always preserved**, not silently switched. To change between published and local sources, first inspect both clients' `plugin marketplace list --json`, then explicitly remove `personal-skills-marketplace` with each selected CLI's `plugin marketplace remove` command and rerun the intended installer. The default full audit expects the published source; a local development checkout uses the separate `--local --check` audit. This makes the former implicit local-source override explicit without repointing existing users.
 
 > **Own skills come from the plugin only.** Symlinking one into `~/.claude/skills` as well loads it twice; `./install.sh --check` reports that as `DUPLICATE`.
 
 ### Third-party skills (APM)
 
-Declared in [`apm.yml`](./apm.yml) and managed by [APM](https://github.com/microsoft/apm). `apm install` fetches them into `.agents/skills/` (gitignored); `install.sh` symlinks them from there, and runs `apm install` first if any skill declared in `apm.yml` has not been fetched. Without APM on `PATH` it stops with an error instead of installing nothing.
+Declared in [`apm.yml`](./apm.yml) and pinned in [`apm.lock.yaml`](./apm.lock.yaml). `install.sh` always runs `apm install --frozen` before linking requested APM skills from `.agents/skills/` (gitignored), including after a pull into an already populated checkout. It links only declared skills by default, not stale undeclared generated folders. Frozen mode refuses manifest/lock drift; restore the matching committed pair rather than regenerating the lock during recovery.
 
 | Skill | Source | Invocation |
 |---|---|---|
@@ -106,7 +109,7 @@ Declared in [`apm.yml`](./apm.yml) and managed by [APM](https://github.com/micro
 | `grill-me` | mattpocock/skills | `/grill-me` |
 | `show-me` | humanlayer/skills | `/show-me` |
 
-To move to the latest upstream versions, run `apm update` and read the diff of `.agents/skills/` before committing the new lockfile: these files are prompt content that loads into your sessions.
+To intentionally update upstream versions, run `apm update`, review the manifest/lock diff and generated skill content, then commit the reviewed dependency changes. These files are prompt content loaded into sessions. If APM reports content hash differences, compare `apm --version` with `apm_version` in the lock before assuming tampering; do not bypass the mismatch with `--update` or `--force` during recovery.
 
 | `install.sh` flag | Effect |
 |---|---|
@@ -114,8 +117,8 @@ To move to the latest upstream versions, run `apm update` and read the diff of `
 | `--target PATH` | install to a custom directory instead |
 | `--copy` | copy instead of symlink (no auto-update from this repo) |
 | `--dry-run` | preview the plan without making changes (no `apm install` is run) |
-| `--check` | read-only audit of both skill directories; exits 1 on problems |
-| `--with-plugins` | afterwards, also run `install-plugins.sh` |
+| `--check` | read-only skill-link audit; exits 1 on problems; does not certify APM content integrity |
+| `--with-plugins` | also install plugins, or audit them when combined with `--check` |
 | _positional args_ | install only those skills (e.g. `./install.sh i-have-adhd grill-me`) |
 | `-h`, `--help` | full help text |
 
@@ -140,9 +143,13 @@ obra/superpowers-marketplace | superpowers-marketplace | superpowers | copilot,c
 ./install-plugins.sh            # both CLIs
 ./install-plugins.sh --dry-run  # preview the exact CLI commands
 ./install-plugins.sh --copilot  # only one CLI
+./install-plugins.sh --check    # read-only expected-plugin and source audit
+./install-plugins.sh --local    # explicit own-plugin development from this checkout
 ```
 
-The script is safe to re-run, skips any CLI that is not on `PATH`, leaves already-registered marketplaces alone, and exits non-zero only if an install command fails. Third-party plugins install at their marketplace's current version; neither CLI offers a way to pin one from this file, so review a plugin's hooks before adding it here.
+The installer skips absent CLIs, preserves registered marketplaces, and fails on inventory, registration, installation or own-plugin update errors. A failed marketplace/authentication command is never treated as "already present." The audit requires each selected CLI and supported `--json` output; missing, disabled, wrong-source and unknown states all fail. Empty inventories are missing plugins, not healthy installs. Install an intentionally disabled plugin's dependencies, then explicitly enable it through the CLI if desired; the installer does not override disable decisions.
+
+Third-party plugins follow the marketplace's current version; `plugins.list` is not a version lock. The audit checks reported identity, enabled state, load errors where exposed, and the marketplace source, not cached plugin bytes or provenance beyond what the CLI reports. Review hooks and bundled MCP configuration before adding or updating plugins.
 
 ### Where each tool looks for skills
 
@@ -170,7 +177,11 @@ Run `./install.sh --check` first. Per CLI and per skill it reports:
 | `DUPLICATE` | an own skill linked here that the plugin also ships |
 | `BACKUP` | a leftover `.backup.*` directory from an earlier install |
 
-If APM skill sources are absent, or a skill declared in `apm.yml` has not been fetched, the check exits 1 with "Check incomplete" rather than reporting a healthy install: run `apm install`, then check again. Plugins are not covered; use `claude plugin list` and `copilot plugin list`.
+If APM skill sources are absent, or a declared skill has not been fetched, the check exits 1 with "Check incomplete": run the canonical recovery command, then check again. Standalone `--check` retains its skill-link-only scope; add `--with-plugins` to audit the other layers too. Plugin checks still run when skill sources are missing. `UNKNOWN` means missing CLI, failed list command, unsupported JSON or unverifiable source/state, never success. `WRONG` marketplace sources require an explicit source-switch decision.
+
+### Recovery privacy
+
+Public manifests contain dependency references, never credentials, private inventory exports or machine paths. Keep runtime secret references (environment variables, keychain entries or secret-manager lookups) intact; restore their values separately through the owning provider, not by replacing references with literals in tracked files. Do not copy live CLI settings, tokens, MCP headers or unredacted command output into issues or recovery reports. The audit parser does not print raw inventory JSON or actual mismatching source URLs; native CLI errors may still contain private details, so review output before sharing. Fixture tests use isolated `HOME` directories and stub CLIs/APM, with no live installation or network.
 
 Known quirks:
 

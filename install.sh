@@ -107,25 +107,45 @@ unfetched_apm() {
   done
 }
 
-UNFETCHED="$(unfetched_apm | tr '\n' ' ')"
-if ! $CHECK && [ -n "$UNFETCHED" ]; then
+NEEDS_APM=false
+if [ ${#SKILLS_TO_INSTALL[@]} -eq 0 ]; then
+  [ ${#DECLARED_APM[@]} -eq 0 ] || NEEDS_APM=true
+else
+  for skill in "${SKILLS_TO_INSTALL[@]}"; do
+    if [ ! -f "$REPO_ROOT/plugin/skills/$skill/SKILL.md" ]; then NEEDS_APM=true; fi
+  done
+fi
+
+# Always reconcile, even after a pull into an already populated checkout.
+# --frozen validates the manifest/lock pair without updating pins.
+if $NEEDS_APM && ! $CHECK; then
   if $DRY_RUN; then
-    echo "would run apm install to fetch: $UNFETCHED(skipped in dry run)"
-    command -v apm &>/dev/null || echo "note: APM is not on PATH; a real run needs it (brew install microsoft/apm/apm)"
-    echo
+    printf '%s\n' 'would run apm install --frozen (no APM invocation in dry run)'
   elif ! command -v apm &>/dev/null; then
-    # Naming skills explicitly (e.g. an own skill) does not need APM.
-    if [ ${#SKILLS_TO_INSTALL[@]} -eq 0 ]; then
-      printf '%s\n' "APM is not on PATH, so the third-party skills in apm.yml cannot be fetched." \
-        "Install it (brew install microsoft/apm/apm), then rerun." >&2
+    printf '%s\n' 'APM is not on PATH; pinned third-party skills cannot be reconciled.' \
+      'Install it (brew install microsoft/apm/apm), then rerun.' >&2
+    exit 1
+  elif [ ! -f "$REPO_ROOT/apm.lock.yaml" ]; then
+    printf '%s\n' 'Missing apm.lock.yaml. Restore the committed lockfile before installing.' >&2
+    exit 1
+  else
+    if ! apm_help="$(apm install --help)" || [[ "$apm_help" != *"--frozen"* ]]; then
+      printf '%s\n' 'APM must support install --frozen (verified with 0.35.1). Upgrade APM; do not use apm update to repair setup.' >&2
       exit 1
     fi
-  else
-    echo "Running apm install to fetch: $UNFETCHED"
-    (cd "$REPO_ROOT" && apm install)
-    echo
+    printf '%s\n' 'Reconciling pinned skills with apm install --frozen'
+    if ! (cd "$REPO_ROOT" && apm install --frozen); then
+      printf '%s\n' 'APM reconciliation failed. Check access, APM/lockfile version compatibility and manifest/lock consistency; pins were not intentionally updated.' >&2
+      exit 1
+    fi
+    missing="$(unfetched_apm | tr '\n' ' ')"
+    if [ -n "$missing" ]; then
+      printf 'APM did not deploy declared skills: %s\n' "$missing" >&2
+      exit 1
+    fi
   fi
 fi
+UNFETCHED="$(unfetched_apm | tr '\n' ' ')"
 
 # Own skills: every plugin/skills/<name>/ holding a SKILL.md.
 # (while-read loops instead of mapfile so this runs on macOS's bash 3.2.)
@@ -150,20 +170,21 @@ while IFS= read -r s; do APM_SKILLS+=("$s"); done < <(
   fi
 )
 
+APM_PROBLEMS=0
 if $CHECK && [ ${#SKILLS_TO_INSTALL[@]} -eq 0 ] && [ -f "$REPO_ROOT/apm.yml" ]; then
   if [ ${#APM_SKILLS[@]} -eq 0 ]; then
-    printf '%s\n' 'Check incomplete: no APM skill sources found in .agents/skills. Run "apm install" in this repo, then rerun --check.' >&2
-    exit 1
+    printf '%s\n' 'Check incomplete: no APM skill sources found in .agents/skills. Run "./install.sh" in this repo, then rerun --check.' >&2
+    APM_PROBLEMS=1
   elif [ -n "$UNFETCHED" ]; then
-    printf '%s\n' "Check incomplete: declared in apm.yml but not fetched: $UNFETCHED" 'Run "apm install" in this repo, then rerun --check.' >&2
-    exit 1
+    printf '%s\n' "Check incomplete: declared in apm.yml but not fetched: $UNFETCHED" 'Run "./install.sh" in this repo, then rerun --check.' >&2
+    APM_PROBLEMS=1
   fi
 fi
 
 # Combined list (own + APM-managed) — used only for explicit-name resolution.
 ALL_SKILLS=(${REPO_SKILLS[@]+"${REPO_SKILLS[@]}"} ${APM_SKILLS[@]+"${APM_SKILLS[@]}"})
 
-if [ ${#ALL_SKILLS[@]} -eq 0 ]; then
+if [ ${#ALL_SKILLS[@]} -eq 0 ] && ! $CHECK && ! $DRY_RUN; then
   echo "no skills found under $REPO_ROOT (looking for */SKILL.md)" >&2
   exit 1
 fi
@@ -173,13 +194,13 @@ fi
 # not by symlinking — this avoids double-loading them alongside the plugin.
 # Pass skill names explicitly to install specific skills (own or APM).
 if [ ${#SKILLS_TO_INSTALL[@]} -eq 0 ]; then
-  SKILLS_TO_INSTALL=(${APM_SKILLS[@]+"${APM_SKILLS[@]}"})
-  # A dry run before the first fetch plans from apm.yml instead.
-  if $DRY_RUN && [ -n "$UNFETCHED" ]; then
-    SKILLS_TO_INSTALL=(${DECLARED_APM[@]+"${DECLARED_APM[@]}"})
+  if [ ${#DECLARED_APM[@]} -gt 0 ]; then
+    SKILLS_TO_INSTALL=("${DECLARED_APM[@]}")
+  else
+    SKILLS_TO_INSTALL=(${APM_SKILLS[@]+"${APM_SKILLS[@]}"})
   fi
 fi
-if [ ${#SKILLS_TO_INSTALL[@]} -eq 0 ]; then
+if [ ${#SKILLS_TO_INSTALL[@]} -eq 0 ] && ! $CHECK; then
   echo "no third-party skills to install (apm.yml declares none)" >&2
   exit 1
 fi
@@ -199,7 +220,7 @@ skill_source() {
 }
 
 if $CHECK; then
-  problems=0
+  problems="$APM_PROBLEMS"
   for TARGET in "${TARGET_DIRS[@]}"; do
     echo "==> $TARGET"
     if [ ! -d "$TARGET" ]; then
@@ -251,7 +272,13 @@ if $CHECK; then
   else
     echo "$problems problem(s). Fix: ./install.sh --claude --copilot (and remove any COPY/DUPLICATE dirs)."
   fi
-  echo 'Plugins are not checked here: run "claude plugin list" and "copilot plugin list".'
+  if $WITH_PLUGINS; then
+    if ! bash "$REPO_ROOT/install-plugins.sh" --check ${PLUGIN_ARGS[@]+"${PLUGIN_ARGS[@]}"}; then
+      problems=$((problems+1))
+    fi
+  else
+    printf '%s\n' 'Plugins not checked (add --with-plugins for the full audit).'
+  fi
   [ "$problems" -eq 0 ]
   exit $?
 fi
@@ -281,16 +308,12 @@ for ti in "${!TARGET_DIRS[@]}"; do
   $DRY_RUN || mkdir -p "$TARGET"
 
   for skill in "${SKILLS_TO_INSTALL[@]}"; do
-    if ! src="$(skill_source "$skill" 2>/dev/null)"; then
-      if $DRY_RUN && [[ " $UNFETCHED" == *" $skill "* ]]; then
-        echo "would fetch and $MODE: $skill"
-        installed=$((installed+1))
-        continue
-      fi
-      echo "skip: $skill (no SKILL.md found under $APM_SRC_REL)" >&2
+    if ! src="$(skill_source "$skill")"; then
+      printf 'Unavailable: %s (no SKILL.md found under %s)\n' "$skill" "$APM_SRC_REL" >&2
       skipped=$((skipped+1))
       continue
     fi
+
     dst="$TARGET/$skill"
 
     # Handle existing destination.
@@ -325,6 +348,11 @@ for ti in "${!TARGET_DIRS[@]}"; do
   done
   echo
 done
+
+if ! $DRY_RUN && [ "$skipped" -gt 0 ]; then
+  printf 'Install incomplete: %s requested skill(s) unavailable.\n' "$skipped" >&2
+  exit 1
+fi
 
 echo "Done. $installed installed, $skipped skipped, $backed_up backed up."
 $DRY_RUN || {
