@@ -62,6 +62,16 @@ STUB
   [ "$(cat "$FIXTURE/apm.lock.yaml")" = 'lock: original' ]
 }
 
+@test "a dry run before the first fetch lists the skills it would fetch" {
+  apm_fixture
+  rm -rf "$FIXTURE/.agents"
+  PATH="/usr/bin:/bin" run /bin/bash "$FIXTURE/install.sh" --dry-run --target "$TARGET"
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"would fetch and symlink: fetched"* ]]
+  [[ "$output" != *"Unavailable"* ]]
+  [ ! -e "$TARGET/fetched" ]
+}
+
 @test "an APM failure cannot become a native-skill-only success" {
   apm_fixture
   printf '#!/bin/bash\nif [ "$2" = "--help" ]; then printf -- "--frozen"; else exit 1; fi\n' > "$BATS_TEST_TMPDIR/bin/apm"

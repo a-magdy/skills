@@ -308,7 +308,14 @@ for ti in "${!TARGET_DIRS[@]}"; do
   $DRY_RUN || mkdir -p "$TARGET"
 
   for skill in "${SKILLS_TO_INSTALL[@]}"; do
-    if ! src="$(skill_source "$skill")"; then
+    if ! src="$(skill_source "$skill" 2>/dev/null)"; then
+      # A dry run before the first fetch plans from apm.yml: the skill is not
+      # on disk yet, but a real run would fetch and link it.
+      if $DRY_RUN && [[ " $UNFETCHED" == *" $skill "* ]]; then
+        echo "would fetch and $MODE: $skill"
+        installed=$((installed+1))
+        continue
+      fi
       printf 'Unavailable: %s (no SKILL.md found under %s)\n' "$skill" "$APM_SRC_REL" >&2
       skipped=$((skipped+1))
       continue

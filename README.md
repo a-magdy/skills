@@ -209,7 +209,7 @@ docs/TRIGGERS.md           example prompts per skill
 
 `./scripts/validate-skills.sh` checks the result (frontmatter, generated tables, hook parity, no personal paths) and `bats tests/*.bats` runs the shell tests; CI runs both. Maintainer detail is in [`AGENTS.md`](./AGENTS.md).
 
-**Versioning:** the [`VERSION`](./VERSION) file is the single source of truth. `./scripts/sync-version.sh 1.3.0` sets it and stamps every manifest; `--check` verifies they match.
+**Versioning:** the [`VERSION`](./VERSION) file is the single source of truth. `./scripts/sync-version.sh <version>` sets it and stamps every manifest; `--check` verifies they match.
 
 ## Design notes
 
