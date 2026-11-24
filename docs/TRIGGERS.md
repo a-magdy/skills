@@ -25,6 +25,7 @@ Generated from each skill's `description` by `./scripts/sync-docs.sh`; do not ed
 | `cinematic-static-site` | "cinematic" · "scroll-driven animations" · "parallax" · "WebGL background" · "smooth scrolling" · "awwwards-style" · "make my static site look amazing" · "chapter-based navigation" · "smooth transitions between sections" |
 | `danish-listing-review` | Use this whenever the user shares a Danish property address, a bolig listing URL, or property PDFs |
 | `decision-log` | "log this decision" · "add to decision log" · "record this" · "ADR for X" · "remember that we decided Y over Z" |
+| `decision-shortlist` | "help me choose between these" · "compare these backpacks" · "which of these should I get" · "make a comparison page with filters" · "shortlist these options" · "review these and build a comparison" |
 | `multi-variant-site-design` | "design variants" · "show me a few directions for the site" · "gallery of designs" · "compare layouts" · "A/B site concepts" · "design sprint" · "I want to see alternatives first" |
 | `scratch-workspace-routing` | "continue where we left off" · "keep working on X" · "in my &lt;project&gt; repo" · "resume session &lt;id&gt;" |
 | `session-carry-forward` | "wrap this session" · "create a handoff" · "carry-forward" · "session summary for next time" · "leave me a doc to pick this up later" |
@@ -54,4 +55,5 @@ Prompts where two skills compete. Be explicit if the wrong one fires.
 - "wrap up": `session-carry-forward` (handoff doc) vs `staged-commit` ("wrap up my working tree into commits").
 - "make the site look premium": `frontend-design` (visual style) vs `cinematic-static-site` (motion). Add "variants" / "options" and `multi-variant-site-design` joins in.
 - "record this": `decision-log`, but generic enough to miss. Say "log this decision".
+- "compare these options": `decision-shortlist` (research and a filterable comparison page for things to buy or pick) vs `multi-variant-site-design` (design variants of a site). Once a choice is made, "log this decision" is `decision-log`.
 - "continue where we left off": `scratch-workspace-routing` finds the repo when the session started outside it; `session-resume` takes over once a carry-forward doc is found there.
