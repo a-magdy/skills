@@ -36,6 +36,9 @@ jobs:
       - name: Run shell tests
         run: bats tests/*.bats
 
+      - name: Python helper syntax (without bytecode writes)
+        run: python3 -B -c "import ast,pathlib; ast.parse(pathlib.Path('scripts/plugin-state.py').read_text())"
+
       - name: Version consistency
         run: ./scripts/sync-version.sh --check
 
