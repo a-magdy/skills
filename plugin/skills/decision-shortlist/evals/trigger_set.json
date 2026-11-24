@@ -1,0 +1,14 @@
+[
+  { "query": "help me choose between these four backpacks, here are the links", "should_trigger": true },
+  { "query": "compare these noise-cancelling headphones and make me a page with filters", "should_trigger": true },
+  { "query": "which of these three e-bikes should I get? review them properly", "should_trigger": true },
+  { "query": "shortlist these standing desks and build a comparison I can filter by price and size", "should_trigger": true },
+  { "query": "I'm torn between these strollers, research reviews and show me side by side with pros and cons", "should_trigger": true },
+  { "query": "rebuild that comparison page with sliders, this time for running shoes", "should_trigger": true },
+  { "query": "make a few design variants for my portfolio site so I can compare them", "should_trigger": false },
+  { "query": "log the decision that we picked Postgres over MongoDB", "should_trigger": false },
+  { "query": "what is the best backpack under 1000 kr? just give me one", "should_trigger": false },
+  { "query": "build me a dashboard of my monthly spending", "should_trigger": false },
+  { "query": "style this product card component so it looks more premium", "should_trigger": false },
+  { "query": "write a pros and cons list for moving to Aarhus", "should_trigger": false }
+]
